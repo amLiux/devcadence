@@ -57,6 +57,7 @@ Modes can be skipped (review is commonly skippable). Agent checks last mode on s
 - **Purpose:** "What are we doing today?"
 - **Tone:** Normal
 - **Caveman:** No
+- **Branch (control=branch/total):** At end, ask "Create branch {prefix}/{ticketId}?" If yes, create from main. Auto if control=total.
 
 ### Pair
 - **Writes:** key decisions, discoveries, blockers
@@ -65,21 +66,23 @@ Modes can be skipped (review is commonly skippable). Agent checks last mode on s
 - **Caveman:** Yes
 - **Proactive:** Deprecated API or paradigm mismatch? Flag immediately.
 - **Auto-logging:** Every meaningful exchange auto-updates the pair log in real-time. Agent owns log management — user should never ask "did you log this?" If no new info, agent says nothing. If a decision, observation, or blocker emerges, agent writes it immediately without being prompted.
+- **Commits (control=branch/total):** On user request or after completing acceptance criteria, commit on current branch using commitTemplate. control=total commits without asking, control=branch asks first.
 
 ### Review
 - **Writes:** approve/request changes, observations
 - **Purpose:** Quality check against ticket acceptance criteria
 - **Tone:** Caveman Full
 - **Caveman:** Yes
-- **On approval:** Update progress.json, advance ticket, append humanLog
+- **On approval:** Update progress.json, advance ticket, append humanLog. If git configured, squash-merge branch or create PR.
 - **Observations:** Track developer patterns for growth feedback
+- **Diff check:** Read git diff on branch against acceptance criteria. Flag any mismatch.
 
 ### Checkout
 - **Writes:** progress update, remaining estimate, prep for next standup
 - **Purpose:** Wrap up, estimate what's left
 - **Tone:** Normal
 - **Caveman:** No
-- **Reads:** git diff + status for accurate progress
+- **Reads:** git diff + status for accurate progress. If branch active, suggest PR or squash-merge.
 
 ## File Locations
 
@@ -103,6 +106,12 @@ Modes can be skipped (review is commonly skippable). Agent checks last mode on s
   "currentTicketIds": ["XXX-01"],
   "lastMode": "checkout",
   "cavemanMode": "full",
+  "git": {
+    "control": "manual|branch|total",
+    "repo": "owner/repo",
+    "branchPrefix": "feat",
+    "commitTemplate": "#{ticketId} {message}"
+  },
   "workflow": {
     "diagram": "flowchart LR\n  standup-->pair\n  pair-->review\n  review-->checkout\n  standup-->checkout\n  pair-->checkout",
     "skippable": ["review"],
@@ -165,6 +174,18 @@ Observations track coding patterns across sessions. Structure supports `/devcade
 - `/devcadence 1:1` reads all observations across projects, groups by pattern, ranks by severity × frequency
 - Output: personalized growth plan with resources (books, courses, docs)
 
+## Git Control Levels
+
+| Level | Branch Creation | Commits | Push to main |
+|-------|----------------|---------|--------------|
+| `manual` | Agent suggests, you run | You write | You decide |
+| `branch` | Agent asks at standup end | Agent commits with template, asks | Never. PR only |
+| `total` | Auto on standup | Agent commits + pushes directly | Yes (solo dev) |
+
+- **control=manual**: no git automation. Agent just reads git status for context.
+- **control=branch**: standup creates branch from main (with ask). Pair commits on branch with `commitTemplate`. Review checks diff. Checkout suggests PR/merge.
+- **control=total**: same as branch but no asking — auto on everything.
+
 ## Rules
 
 1. **Mode chain flexible** — default standup→pair→review→checkout. Skippable modes allowed. Agent warns on unusual transitions but does not block.
@@ -174,6 +195,7 @@ Observations track coding patterns across sessions. Structure supports `/devcade
 5. **Auto-update** — on review approval, update progress.json status, advance ticket, append to humanLog.
 6. **Caveman Full** — pair and review modes use terse, fragment-style communication.
 7. **Auto-logging** — logs are the agent's responsibility, not the user's. Every mode silently updates its log file as context accumulates. User never asks "did you log this?"
+8. **Git safety** — never push to main unless `control=total`. Branches always start from latest main.
 
 ## Extending DevCadence
 
