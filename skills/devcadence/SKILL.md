@@ -64,6 +64,7 @@ Modes can be skipped (review is commonly skippable). Agent checks last mode on s
 - **Tone:** Caveman Full
 - **Caveman:** Yes
 - **Proactive:** Deprecated API or paradigm mismatch? Flag immediately.
+- **Auto-logging:** Every meaningful exchange auto-updates the pair log in real-time. Agent owns log management — user should never ask "did you log this?" If no new info, agent says nothing. If a decision, observation, or blocker emerges, agent writes it immediately without being prompted.
 
 ### Review
 - **Writes:** approve/request changes, observations
@@ -172,6 +173,7 @@ Observations track coding patterns across sessions. Structure supports `/devcade
 4. **Observations** — review mode tracks developer patterns for growth feedback.
 5. **Auto-update** — on review approval, update progress.json status, advance ticket, append to humanLog.
 6. **Caveman Full** — pair and review modes use terse, fragment-style communication.
+7. **Auto-logging** — logs are the agent's responsibility, not the user's. Every mode silently updates its log file as context accumulates. User never asks "did you log this?"
 
 ## Extending DevCadence
 
