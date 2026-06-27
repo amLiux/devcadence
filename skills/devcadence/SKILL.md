@@ -52,6 +52,33 @@ flowchart LR
 
 Modes can be skipped (review is commonly skippable). Agent checks last mode on start and warns if chain is unusual but never blocks.
 
+### Bootstrap (First Run)
+
+On first `/devcadence` invocation in a project, check for project config:
+
+1. **Check** if command file (`.opencode/commands/devcadence.md`) has a `# Project Config` block with: log dir, progress path, ticket format, custom modes
+2. **Also check** `progress.json` at default location `~/docs/<project>/progress.json` — if exists, project is already configured
+3. **If no config found**, present a setup form:
+
+   ```
+   No DevCadence config found for this project.
+   
+   ┌─ Project Config ──────────────────────────────────┐
+   │ Log dir:      ~/docs/<project>/                   │
+   │ Progress:     ~/docs/<project>/progress.json      │
+   │ Ticket ID:    PROJ-01                             │
+   │ Custom modes: (optional) e.g. skip review         │
+   │ Git control:  manual / branch / total             │
+   └───────────────────────────────────────────────────┘
+   
+   Accept defaults or provide values.
+   ```
+
+4. **Wire collected values** into `.opencode/commands/devcadence.md` as a `# Project Config` block (or append to existing command)
+5. **Create** `progress.json` with these values on first standup log write
+
+This runs once. On subsequent invocations, config block exists and is read directly.
+
 ### Standup
 - **Writes:** ticket, tasks, acceptance criteria
 - **Purpose:** "What are we doing today?"
@@ -84,10 +111,105 @@ Modes can be skipped (review is commonly skippable). Agent checks last mode on s
 - **Caveman:** No
 - **Reads:** git diff + status for accurate progress. If branch active, suggest PR or squash-merge.
 
+## Utility Modes
+
+Standalone modes outside the chain. No log written — they modify meta-config, not project work.
+
+### Config
+
+`/devcadence config` — View and edit project configuration.
+
+1. **Read** current `# Project Config` block from the command file (`.opencode/commands/devcadence.md`) and `progress.json`
+2. **Present** a pre-filled form:
+
+   ```
+   ┌─ Project Config ──────────────────────────────────┐
+   │ Log dir:      ~/docs/my-project/                  │
+   │ Progress:     ~/docs/my-project/progress.json     │
+   │ Ticket:       PROJ-01                             │
+   │ Git control:  branch (manual / branch / total)    │
+   │ Caveman:      full (lite / full / ultra)          │
+   │ Branch prefix: feat                               │
+   │ Commit tmpl:  #{ticketId} {message}               │
+   └───────────────────────────────────────────────────┘
+   ```
+
+3. **On save:** Rewrite the `# Project Config` block in the command file and update `progress.json` with the new values
+4. **Append** a `humanLog` entry noting the change
+
+### Extensions
+
+`/devcadence extensions` — List all sibling commands that extend DevCadence.
+
+1. **Scan** `.opencode/commands/*.md` for files containing `skill({ name: "devcadence" })`
+2. **Exclude** `devcadence.md` itself
+3. **Extract** from each match:
+   - Command name (filename without `.md`)
+   - `description` field from frontmatter
+   - Any additional `skill({ name: "..." })` lines (other loaded skills)
+   - Purpose line (the sentence after `Activate DevCadence protocol for...`)
+4. **Display** as a formatted list:
+
+   ```
+   DevCadence Extensions
+   ─────────────────────
+   hortus-migration — HortusClavis IAM migration with HC SME
+     Skills: devcadence, hc-migrate
+     Use: /hortus-migration standup
+
+   No extensions found. Run /devcadence new-extension to create one.
+   ```
+
+### New Extension
+
+`/devcadence new-extension` — Scaffold a new sibling command that extends DevCadence with a domain SME.
+
+1. **Ask** interactively:
+
+   ```
+   ┌─ New Extension ───────────────────────────────────┐
+   │ Command name:      hortus-migration               │
+   │ Description:       HortusClavis IAM migration     │
+   │ Skill(s) to load:  hc-migrate (comma-sep)         │
+   │ Purpose:           HC auth migration with fallback │
+   └───────────────────────────────────────────────────┘
+   ```
+
+2. **Read** the parent `devcadence.md` to copy its `# Project Config` block
+3. **Create** `.opencode/commands/<name>.md`:
+
+   ```markdown
+   # ---
+   # description: <description>
+   # agent: build
+   # ---
+
+   skill({ name: "devcadence" })
+   skill({ name: "<skill-1>" })
+   skill({ name: "<skill-n>" })
+   Activate DevCadence protocol for <purpose>.
+
+   ## Project Config
+   # - Log dir: <copied from parent>
+   # - Progress: <copied from parent>
+   # - Ticket format: <copied from parent>
+   ```
+
+4. **Check** if the skill file exists at `.opencode/skills/<name>/SKILL.md`. If not, suggest creating it:
+
+   ```
+   Skill "hc-migrate" not found in .opencode/skills/.
+   Copy it from the source repo or create a new SKILL.md.
+   ```
+
+5. **Log** the creation as a humanLog entry
+
 ## File Locations
 
+Default location: `~/docs/<project>/`. Configurable per-project via `# Project Config` block in the command file.
+
 ```
-~/docs/<project>/
+<log-dir>/
 ├── logs/
 │   ├── YYYY-MM-DD-standup.json
 │   ├── YYYY-MM-DD-pair.json
@@ -96,6 +218,8 @@ Modes can be skipped (review is commonly skippable). Agent checks last mode on s
 ├── progress.json
 └── plan.md
 ```
+
+Agent resolves `<log-dir>` from project config. Fallback: `~/docs/<project>/`.
 
 ## Progress Schema
 
@@ -199,13 +323,26 @@ Observations track coding patterns across sessions. Structure supports `/devcade
 
 ## Extending DevCadence
 
-This protocol is designed to be extended. To create a project-specific workflow:
+This protocol is designed to be extended. Two ways to configure:
 
-1. Reference this skill: `skill({ name: "devcadence" })`
-2. Add project context: log dir, progress file path, ticket ID format, custom modes
-3. Customize workflow mermaid in progress.json for non-standard chains
+**Manual:** Add a `# Project Config` block to your command file:
+
+```markdown
+skill({ name: "devcadence" })
+
+# Project Config
+# - Log dir: ~/docs/my-project/
+# - Progress: ~/docs/my-project/progress.json
+# - Ticket format: MYPRJ-01
+```
+
+**Auto (Bootstrap):** Run `/devcadence standup` with no config. AI detects missing config, presents a setup form, and wires values into the command file automatically.
+
+For custom workflow chains, override `workflow.diagram` in progress.json after first standup.
 
 Future modes: `/devcadence 1:1`, `/devcadence retrospective`, `/devcadence release`
+
+Utility modes: `config`, `extensions`, `new-extension` — see [Utility Modes](#utility-modes) above.
 
 ## Caveman Mode
 
