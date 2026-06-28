@@ -278,6 +278,72 @@ Standalone modes outside the chain. No log written — they modify meta-config, 
 
 5. **Log** the creation as a humanLog entry
 
+### New SME
+
+`/devcadence new-sme` — Auto-generate a repo SME at `.opencode/skills/<name>/SKILL.md` for any agent dropped into this repo. SME is standalone — usable without DevCadence.
+
+**Wizard flow:**
+
+```
+/devcadence new-sme
+
+┌─ New SME ───────────────────────────────────────────┐
+│ SME name:           <repo>-sme (auto)               │
+│ Analysis depth:     quick / full [quick]            │
+│ Link to DevCadence? y/n [y]                          │
+└──────────────────────────────────────────────────────┘
+```
+
+**Analysis depth:**
+
+Quick mode (default, zero deps):
+1. `tree -L 3` for directory structure
+2. `rg` (ripgrep) for key patterns: API routes, DB schemas, entry points, imports
+3. Read key config files (package.json, pyproject.toml, Cargo.toml, etc.)
+4. Agent synthesizes → ~1000 token SKILL.md
+
+Full mode (adds graphify + repomix):
+1. Same as quick mode
+2. `npx repomix --compress` — tree-sitter signature extraction (function/class signatures only)
+3. Run graphify for knowledge graph with community clusters
+4. Enriched SKILL.md with call graphs + dependency maps
+
+**Output SKILL.md format:**
+
+```markdown
+---
+name: <repo>-sme
+description: Auto-generated SME for <repo>
+---
+
+# SME: <repo>
+
+## Overview
+<2-3 lines describing repo purpose>
+
+## Entry Points
+- src/main.py — FastAPI app, port 8000
+- src/cli/index.ts — CLI entry
+
+## Key Modules
+- src/api/ — REST endpoints (12 routes)
+- src/models/ — DB schemas (8 tables)
+
+## Key Dependencies
+- FastAPI, SQLAlchemy, Redis
+
+## Architecture
+- Monorepo: apps/ + packages/
+- API Gateway → Services → PostgreSQL
+```
+
+**Integration:**
+- SME is written to `.opencode/skills/<name>/SKILL.md` — usable by any agent, any framework
+- If "Link to DevCadence?" is yes, runs `new-extension` to create a command loading `devcadence + <repo>-sme`
+- SME is user-owned — editable, versionable, shareable across projects
+
+**Design principle:** "Compass, not encyclopedia" (Meta, 2026). Output is ~1000 tokens — small enough to always include.
+
 ## File Locations
 
 Default location: `~/docs/<project>/`. Configurable per-project via `# Project Config` block in the command file.
