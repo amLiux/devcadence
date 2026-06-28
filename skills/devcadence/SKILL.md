@@ -1,6 +1,6 @@
 ---
 name: devcadence
-description: Structured AI collaboration protocol with standup/pair/review/checkout modes, standardized logs, and developer behavioral observations
+description: Structured AI collaboration protocol with standup/pair/review/checkout/huddle modes, standardized logs, and developer behavioral observations
 license: MIT
 compatibility: opencode
 metadata:
@@ -10,7 +10,7 @@ metadata:
 
 # DevCadence Protocol
 
-AI collaboration workflow with 4 modes, standardized logs, and developer growth tracking.
+AI collaboration workflow with 5 modes (standup/pair/review/checkout/huddle), standardized logs, and developer growth tracking.
 
 ## Log Schema
 
@@ -19,7 +19,7 @@ All logs use this schema:
 ```json
 {
   "id": "YYYY-MM-DD-<mode>",
-  "mode": "standup|pair|review|checkout",
+  "mode": "standup|pair|review|checkout|huddle",
   "timestamp": "ISO8601",
   "phase": 1,
   "ticketIds": ["XXX-01"],
@@ -48,6 +48,9 @@ flowchart LR
   review-->checkout
   standup-->checkout
   pair-->checkout
+  huddle-->standup
+  huddle-->pair
+  huddle-->checkout
 ```
 
 Modes can be skipped (review is commonly skippable). Agent checks last mode on start and warns if chain is unusual but never blocks.
@@ -111,6 +114,74 @@ This runs once. On subsequent invocations, config block exists and is read direc
 - **Caveman:** No
 - **Reads:** git diff + status for accurate progress. If branch active, suggest PR or squash-merge.
 
+### Huddle
+
+- **Writes:** huddle log, humanLog entries, observations, creates/updates tickets (mandatory)
+- **Purpose:** "I had an idea" — lightweight ideation without spinning the full cycle
+- **Tone:** Normal (default), adapts to persona mapping
+- **Caveman:** No (follows persona)
+- **Chain:** Standalone — no required predecessor. Updates `lastMode` to huddle so chain knows it happened. Any mode can follow.
+
+**Wizard flow:**
+
+```
+/devcadence huddle
+
+┌─ Huddle ───────────────────────────────────────────┐
+│ How many days to scan for context? [7]              │
+│ Tags (comma-sep, e.g. bug, infra, idea): idea       │
+│ Global? (y/n) [n]                                   │
+│ Describe your thoughts...                            │
+└────────────────────────────────────────────────────┘
+```
+
+**Tag → Persona mapping** (configurable via project config):
+
+| Tag | Persona |
+|-----|---------|
+| `bug` | Critical Response engineer — root cause analysis, minimal reproduction, fix strategy |
+| `infra` | Senior DevOps engineer — scalability, reliability, cost, observability |
+| `frontend` | Frontend architect — UX, component design, accessibility, bundle perf |
+| `backend` | Backend architect — API design, data flow, query perf, type safety |
+| `idea` | Innovation partner — explore possibilities, rapid prototyping, thought experiments |
+| *(custom)* | *(custom persona set via /devcadence config)* |
+
+**Behavior:**
+1. On start, scan last N days of logs from `<log-dir>/logs/` for context
+2. Run wizard: days-back, tags, global flag
+3. Set agent persona based on first tag match (ordered priority)
+4. Free-form discussion. Agent captures in real-time:
+   - Key decisions → humanLog entries
+   - Emerging patterns → observations
+   - Concrete tasks → new tickets in progress.json
+5. **On close — mandatory updates:**
+   - Write huddle log (with `global: true` if flagged)
+   - Append humanLog entry to progress.json
+   - Persist all observations captured during discussion
+   - Save any new/updated tickets
+   - Update `lastMode` to huddle
+6. **On close — suggest next mode:**
+   - If concrete tasks emerged → suggest `pair` to implement
+   - If ideas need more structure → suggest `standup` to plan them
+   - If blockers or bugs surfaced → suggest `standup` to create a ticket
+   - If nothing actionable → suggest closing
+   - If user wants to keep discussing → offer to continue or close
+
+**Natural pathways:**
+```
+huddle --> pair       (concrete tasks, let's build)
+huddle --> standup    (needs planning, create tickets)
+huddle --> checkout   (session over, wrap up)
+huddle --> huddle     (more ideas, keep riffing)
+```
+
+**Capabilities:**
+- Create tickets with task, acceptance criteria, files
+- Add humanLog entries (type: checkpoint, decision, blocker, observation, milestone)
+- Add observations with pattern, severity, confidence
+- Edit existing tickets (status, AC, notes)
+- Tag itself `global: true` so ideas surface automatically
+
 ## Utility Modes
 
 Standalone modes outside the chain. No log written — they modify meta-config, not project work.
@@ -130,7 +201,10 @@ Standalone modes outside the chain. No log written — they modify meta-config, 
    │ Git control:  branch (manual / branch / total)    │
    │ Caveman:      full (lite / full / ultra)          │
    │ Branch prefix: feat                               │
-   │ Commit tmpl:  #{ticketId} {message}               │
+    │ Commit tmpl:  #{ticketId} {message}               │
+   │ Huddle tags:  bug:Critical Response engineer...   │
+   │              infra:Senior DevOps engineer...      │
+   │              (edit in progress.json)              │
    └───────────────────────────────────────────────────┘
    ```
 
@@ -214,7 +288,8 @@ Default location: `~/docs/<project>/`. Configurable per-project via `# Project C
 │   ├── YYYY-MM-DD-standup.json
 │   ├── YYYY-MM-DD-pair.json
 │   ├── YYYY-MM-DD-review.json
-│   └── YYYY-MM-DD-checkout.json
+│   ├── YYYY-MM-DD-checkout.json
+│   └── YYYY-MM-DD-huddle.json
 ├── progress.json
 └── plan.md
 ```
@@ -254,6 +329,13 @@ Agent resolves `<log-dir>` from project config. Fallback: `~/docs/<project>/`.
       "reviewStatus": null
     }
   ],
+  "huddleTags": {
+    "bug": "Critical Response engineer — root cause, minimal repro, fix",
+    "infra": "Senior DevOps — scalability, reliability, cost",
+    "frontend": "Frontend architect — UX, components, a11y, perf",
+    "backend": "Backend architect — API design, data flow, perf",
+    "idea": "Innovation partner — explore, riff, rapid prototype"
+  },
   "humanLog": [
     {
       "id": "hl-001",
@@ -320,6 +402,7 @@ Observations track coding patterns across sessions. Structure supports `/devcade
 6. **Caveman Full** — pair and review modes use terse, fragment-style communication.
 7. **Auto-logging** — logs are the agent's responsibility, not the user's. Every mode silently updates its log file as context accumulates. User never asks "did you log this?"
 8. **Git safety** — never push to main unless `control=total`. Branches always start from latest main.
+9. **Huddle standalone** — huddle mode is outside the mode chain. It updates `lastMode` but no mode requires huddle and huddle requires no mode.
 
 ## Extending DevCadence
 
@@ -341,6 +424,8 @@ skill({ name: "devcadence" })
 For custom workflow chains, override `workflow.diagram` in progress.json after first standup.
 
 Future modes: `/devcadence 1:1`, `/devcadence retrospective`, `/devcadence release`
+
+Huddle mode: `/devcadence huddle` — see [Huddle](#huddle) above.
 
 Utility modes: `config`, `extensions`, `new-extension` — see [Utility Modes](#utility-modes) above.
 
