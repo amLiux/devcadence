@@ -59,25 +59,22 @@ Modes can be skipped (review is commonly skippable). Agent checks last mode on s
 
 On first `/devcadence` invocation in a project, check for project config:
 
-1. **Check** if command file (`.opencode/commands/devcadence.md`) has a `# Project Config` block with: log dir, progress path, ticket format, custom modes
-2. **Also check** `progress.json` at default location `~/docs/<project>/progress.json` — if exists, project is already configured
-3. **If no config found**, present a setup form:
+1. **Check** if command file (`.opencode/commands/devcadence.md`) has a `# Project Config` block
+2. **Also check** `progress.json` at default location `~/docs/<project>/progress.json`
+3. **If no config found**, prompt user to run `/devcadence setup` first, or present a minimal inline form for log dir + ticket prefix
 
-   ```
-   No DevCadence config found for this project.
-   
-   ┌─ Project Config ──────────────────────────────────┐
-   │ Log dir:      ~/docs/<project>/                   │
-   │ Progress:     ~/docs/<project>/progress.json      │
-   │ Ticket ID:    PROJ-01                             │
-   │ Custom modes: (optional) e.g. skip review         │
-   │ Git control:  manual / branch / total             │
-   └───────────────────────────────────────────────────┘
-   
-   Accept defaults or provide values.
-   ```
+    ```
+    No DevCadence config found.
+    Run /devcadence setup for the full wizard (role, SME, git control, etc.)
+    or provide basics below:
+    
+    ┌─ Quick Config ───────────────────────────────────┐
+    │ Log dir:      ~/docs/<project>/                  │
+    │ Ticket prefix: PROJ                              │
+    └──────────────────────────────────────────────────┘
+    ```
 
-4. **Wire collected values** into `.opencode/commands/devcadence.md` as a `# Project Config` block (or append to existing command)
+4. **If quick form** — write `# Project Config` block with defaults for unset fields (git: branch, role: dev-lead, caveman: full)
 5. **Create** `progress.json` with these values on first standup log write
 
 This runs once. On subsequent invocations, config block exists and is read directly.
@@ -233,6 +230,39 @@ The agent reads `userRole` from progress.json on each mode start, loads the matc
 ## Utility Modes
 
 Standalone modes outside the chain. No log written — they modify meta-config, not project work.
+
+### Setup
+
+`/devcadence setup` — One-time project bootstrap. Run before anything else.
+
+**Wizard:**
+
+```
+/devcadence setup
+
+┌─ DevCadence Setup ─────────────────────────────────┐
+│ Project name:        my-project                     │
+│ Log directory:       ~/docs/my-project/             │
+│ Ticket prefix:       PROJ                           │
+│ Git control:         branch (manual/branch/total)   │
+│ User role:           dev-lead (pm/backend/frontend/ │
+│                       devops)                       │
+│ Caveman level:       full (off/lite/full/ultra)     │
+│ Generate repo SME?   y/n [n]                        │
+│   → SME name:       my-project-sme (auto)           │
+│   → Link to DevCadence? y/n [y]                     │
+└────────────────────────────────────────────────────┘
+```
+
+**Behavior:**
+1. Present wizard collecting all configurable fields
+2. Write `# Project Config` block to `.opencode/commands/devcadence.md`
+3. Create `progress.json` with initial values (phase 1, userRole, git config, default workflow)
+4. If "Generate repo SME" is yes, run `new-sme` flow to create `.opencode/skills/<name>/SKILL.md`
+5. If "Link to DevCadence" is yes, run `new-extension` to create a command that loads `devcadence + <repo>-sme`
+6. Append a `humanLog` entry marking setup complete
+
+After setup, `/devcadence standup` just works.
 
 ### Config
 

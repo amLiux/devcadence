@@ -24,6 +24,7 @@ the previous session's log so nothing gets lost.
 
 | Mode | What it does |
 |------|-------------|
+| **setup** | One-time project bootstrap. Asks for role, SME, git control, log path — wires everything. |
 | **standup** | Plan today in 30 seconds. Creates tickets, scans global logs for context you'd forgotten. |
 | **pair** | Deep work with caveman compression (~55% fewer tokens). Agent answers, reviews, refactors — terse. |
 | **review** | Check code against ticket AC. Approve or request changes. Auto-updates progress. |
@@ -61,16 +62,19 @@ npx skills add devcadence
 # Or copy to project
 cp -r skills/devcadence/ .opencode/skills/devcadence/
 
-# Start a session
-/devcadence standup
+# Bootstrap your project
+/devcadence setup
 ```
 
-First run auto-detects your project and asks for log location, ticket format,
-and workflow preferences. After that, `/devcadence standup` just works.
+The wizard asks for role, git control level, caveman preference, and whether
+to generate a repo SME. After that, every mode just works — no more setup.
 
 ## For project leads
 
-Each project needs a config block in `.opencode/commands/devcadence.md`:
+Run `/devcadence setup` on any new project — it asks for everything and wires
+it into `.opencode/commands/devcadence.md` automatically. No manual config.
+
+If you prefer to write it by hand, the config block looks like this:
 
 ```markdown
 # .opencode/commands/devcadence.md
@@ -82,8 +86,6 @@ skill({ name: "devcadence" })
 # - Ticket format: MYPRJ-01
 # - Modes: standup → pair → checkout (skip review)
 ```
-
-The setup wizard walks through this on first run. No manual editing needed.
 
 **Extending with specialist commands** — keep `devcadence.md` pure; create
 sibling commands that load domain SMEs:
