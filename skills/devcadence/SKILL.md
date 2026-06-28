@@ -85,14 +85,14 @@ This runs once. On subsequent invocations, config block exists and is read direc
 ### Standup
 - **Writes:** ticket, tasks, acceptance criteria
 - **Purpose:** "What are we doing today?"
-- **Tone:** Normal
+- **Tone:** Normal (adapts to userRole)
 - **Caveman:** No
 - **Branch (control=branch/total):** At end, ask "Create branch {prefix}/{ticketId}?" If yes, create from main. Auto if control=total.
 
 ### Pair
 - **Writes:** key decisions, discoveries, blockers
 - **Purpose:** User codes, AI answers (passive unless critical flag)
-- **Tone:** Caveman Full
+- **Tone:** Caveman Full (adapts depth and focus to userRole)
 - **Caveman:** Yes
 - **Proactive:** Deprecated API or paradigm mismatch? Flag immediately.
 - **Auto-logging:** Every meaningful exchange auto-updates the pair log in real-time. Agent owns log management — user should never ask "did you log this?" If no new info, agent says nothing. If a decision, observation, or blocker emerges, agent writes it immediately without being prompted.
@@ -101,7 +101,7 @@ This runs once. On subsequent invocations, config block exists and is read direc
 ### Review
 - **Writes:** approve/request changes, observations
 - **Purpose:** Quality check against ticket acceptance criteria
-- **Tone:** Caveman Full
+- **Tone:** Caveman Full (adapts focus to userRole)
 - **Caveman:** Yes
 - **On approval:** Update progress.json, advance ticket, append humanLog. If git configured, squash-merge branch or create PR.
 - **Observations:** Track developer patterns for growth feedback
@@ -110,7 +110,7 @@ This runs once. On subsequent invocations, config block exists and is read direc
 ### Checkout
 - **Writes:** progress update, remaining estimate, prep for next standup
 - **Purpose:** Wrap up, estimate what's left
-- **Tone:** Normal
+- **Tone:** Normal (adapts to userRole)
 - **Caveman:** No
 - **Reads:** git diff + status for accurate progress. If branch active, suggest PR or squash-merge.
 
@@ -118,8 +118,8 @@ This runs once. On subsequent invocations, config block exists and is read direc
 
 - **Writes:** huddle log, humanLog entries, observations, creates/updates tickets (mandatory)
 - **Purpose:** "I had an idea" — lightweight ideation without spinning the full cycle
-- **Tone:** Normal (default), adapts to persona mapping
-- **Caveman:** No (follows persona)
+- **Tone:** Normal (adapts to huddle tag, otherwise userRole)
+- **Caveman:** No
 - **Chain:** Standalone — no required predecessor. Updates `lastMode` to huddle so chain knows it happened. Any mode can follow.
 
 **Wizard flow:**
@@ -182,6 +182,54 @@ huddle --> huddle     (more ideas, keep riffing)
 - Edit existing tickets (status, AC, notes)
 - Tag itself `global: true` so ideas surface automatically
 
+## Agent Roles
+
+Agent adapts its depth, focus, and tone across all modes based on your role. Set via `/devcadence mode <role>` or `/devcadence config`.
+
+### Default Roles
+
+Role stored in progress.json as `userRole`. Each role has a `prompt` — a system directive loaded by the agent on each mode start.
+
+```json
+{
+  "userRole": "dev-lead",
+  "personaMappings": {
+    "dev-lead": {
+      "label": "Principal Engineer",
+      "prompt": "User is a technical lead. Balanced deep-dives: architecture + implementation. Assume solid engineering background. Cover trade-offs naturally."
+    },
+    "pm": {
+      "label": "Senior Developer",
+      "prompt": "User is a product manager. Prioritize: user stories, acceptance criteria, business logic, timeline estimates. Avoid deep implementation jargon. Explain technical concepts in plain language."
+    },
+    "backend": {
+      "label": "Data Architect",
+      "prompt": "User is a backend engineer. Prioritize: DB schemas, API design, data flow, query perf, security, routing. Assume technical fluency. Skip basic explanations."
+    },
+    "frontend": {
+      "label": "Frontend Architect",
+      "prompt": "User is a frontend engineer. Prioritize: component architecture, state management, a11y, bundle perf, responsive design, UX patterns. Assume technical fluency."
+    },
+    "devops": {
+      "label": "SRE / Infra Architect",
+      "prompt": "User is a DevOps/SRE engineer. Prioritize: infrastructure, deployment pipelines, observability, scaling, cost optimization, reliability patterns. Assume technical fluency."
+    }
+  }
+}
+```
+
+### How Roles Affect Each Mode
+
+| Mode | dev-lead | pm | backend | frontend | devops |
+|------|----------|-----|---------|----------|--------|
+| **Standup** | Balanced: reqs + tech notes | User stories, AC, business value | Endpoints, DB schemas, data flow | Components, state, UI states | Infra changes, scaling, monitoring |
+| **Pair** | Pragmatic, trade-offs | Concepts, what vs how | DB/perf/API deep-dives | Component/state/a11y deep-dives | Pipeline/observability deep-dives |
+| **Review** | AC + code quality | Requirements match | Schema, perf, security | Component structure, a11y | Reliability, cost, security |
+| **Checkout** | Balanced summary | Business progress | Technical progress | UI progress | Infra progress |
+| **Huddle** | Per tag persona | Per tag persona | Per tag persona | Per tag persona | Per tag persona |
+
+The agent reads `userRole` from progress.json on each mode start, loads the matching prompt, and adapts behavior accordingly.
+
 ## Utility Modes
 
 Standalone modes outside the chain. No log written — they modify meta-config, not project work.
@@ -202,6 +250,7 @@ Standalone modes outside the chain. No log written — they modify meta-config, 
    │ Caveman:      full (lite / full / ultra)          │
    │ Branch prefix: feat                               │
     │ Commit tmpl:  #{ticketId} {message}               │
+   │ User role:    dev-lead (pm/backend/frontend/devops)│
    │ Huddle tags:  bug:Critical Response engineer...   │
    │              infra:Senior DevOps engineer...      │
    │              (edit in progress.json)              │
@@ -210,6 +259,14 @@ Standalone modes outside the chain. No log written — they modify meta-config, 
 
 3. **On save:** Rewrite the `# Project Config` block in the command file and update `progress.json` with the new values
 4. **Append** a `humanLog` entry noting the change
+
+### Mode
+
+`/devcadence mode <role>` — Quick switch user role. Persists to progress.json.
+
+- If `<role>` matches a key in `personaMappings` → update `userRole` + append humanLog entry
+- If no arg → show current role
+- No log file written (utility mode)
 
 ### Extensions
 
@@ -395,6 +452,29 @@ Agent resolves `<log-dir>` from project config. Fallback: `~/docs/<project>/`.
       "reviewStatus": null
     }
   ],
+  "userRole": "dev-lead",
+  "personaMappings": {
+    "dev-lead": {
+      "label": "Principal Engineer",
+      "prompt": "User is a technical lead. Balanced deep-dives: architecture + implementation."
+    },
+    "pm": {
+      "label": "Senior Developer",
+      "prompt": "User is a product manager. Prioritize: user stories, acceptance criteria, business logic."
+    },
+    "backend": {
+      "label": "Data Architect",
+      "prompt": "User is a backend engineer. Prioritize: DB schemas, API design, data flow, security."
+    },
+    "frontend": {
+      "label": "Frontend Architect",
+      "prompt": "User is a frontend engineer. Prioritize: component architecture, state, a11y, perf."
+    },
+    "devops": {
+      "label": "SRE / Infra Architect",
+      "prompt": "User is a DevOps/SRE engineer. Prioritize: infrastructure, pipelines, observability, scaling."
+    }
+  },
   "huddleTags": {
     "bug": "Critical Response engineer — root cause, minimal repro, fix",
     "infra": "Senior DevOps — scalability, reliability, cost",
