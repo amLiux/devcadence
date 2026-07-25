@@ -75,12 +75,16 @@ else
   fail "Failed to download SKILL.md — check your internet connection"
 fi
 
-# [6] Fetch command file
+# [6] Fetch command file (skip if exists — config lives here)
 log "Installing devcadence.md..."
-if curl -sf "$REPO_RAW/commands/devcadence.md" -o ".opencode/commands/devcadence.md"; then
-  ok "Downloaded"
+if [ -f ".opencode/commands/devcadence.md" ]; then
+  ok "Skipped — already exists (config preserved)"
 else
-  fail "Failed to download devcadence.md — check your internet connection"
+  if curl -sf "$REPO_RAW/commands/devcadence.md" -o ".opencode/commands/devcadence.md"; then
+    ok "Downloaded"
+  else
+    fail "Failed to download devcadence.md — check your internet connection"
+  fi
 fi
 
 # [7] Verify installation

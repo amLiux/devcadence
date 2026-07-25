@@ -59,9 +59,9 @@ Modes can be skipped (review is commonly skippable). Agent checks last mode on s
 
 On first `/devcadence` invocation in a project, check for project config:
 
-1. **Check** if command file (`.opencode/commands/devcadence.md`) has a `# Project Config` block
-2. **Also check** `progress.json` at default location `~/docs/<project>/progress.json`
-3. **If no config found**, prompt user to run `/devcadence setup` first, or present a minimal inline form for log dir + ticket prefix
+1. **Check** `progress.json` at `<log-dir>/progress.json` (default: `~/docs/<project>/progress.json`). If found, config exists — read `userRole`, `cavemanMode`, `git.control` from it.
+2. **Also check** if command file (`.opencode/commands/devcadence.md`) has a `# Project Config` block. Use only if `progress.json` missing.
+3. **If neither found**, prompt user to run `/devcadence setup` first, or present a minimal inline form for log dir + ticket prefix
 
     ```
     No DevCadence config found.
@@ -77,7 +77,7 @@ On first `/devcadence` invocation in a project, check for project config:
 4. **If quick form** — write `# Project Config` block with defaults for unset fields (git: branch, role: dev-lead, caveman: full)
 5. **Create** `progress.json` with these values on first standup log write
 
-This runs once. On subsequent invocations, config block exists and is read directly.
+This runs once. On subsequent invocations, `progress.json` is read directly.
 
 ### Standup
 - **Writes:** ticket, tasks, acceptance criteria
