@@ -56,23 +56,23 @@ hits DB schemas and data flow.
 ## Quick start
 
 ```bash
-# Install the skill
-npx skills add devcadence
-
-# Or copy to project
-cp -r skills/devcadence/ .opencode/skills/devcadence/
-
-# Bootstrap your project
-/devcadence setup
+cd your-project
+curl -sL https://raw.githubusercontent.com/amLiux/devcadence/main/install.sh | bash
 ```
 
-The wizard asks for role, git control level, caveman preference, and whether
-to generate a repo SME. After that, every mode just works — no more setup.
+Then open opencode and run `/devcadence setup`.
 
 ## For project leads
 
-Run `/devcadence setup` on any new project — it asks for everything and wires
-it into `.opencode/commands/devcadence.md` automatically. No manual config.
+```bash
+cd your-project
+curl -sL https://raw.githubusercontent.com/amLiux/devcadence/main/install.sh | bash
+opencode
+/devcadence setup
+```
+
+The setup wizard asks for everything and wires it into
+`.opencode/commands/devcadence.md` automatically. No manual config.
 
 If you prefer to write it by hand, the config block looks like this:
 
@@ -103,8 +103,17 @@ All commands share the same project config.
 
 ```bash
 git clone https://github.com/amLiux/devcadence.git
+cd devcadence
 pip install -e ".[dev]"
 pytest tests/
+```
+
+To test the installer:
+
+```bash
+mkdir /tmp/test-project && cd /tmp/test-project
+curl -sL https://raw.githubusercontent.com/amLiux/devcadence/main/install.sh | bash
+ls .opencode/
 ```
 
 ```
