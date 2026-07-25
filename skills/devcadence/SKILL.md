@@ -579,6 +579,7 @@ Observations track coding patterns across sessions. Structure supports `/devcade
 7. **Auto-logging** — logs are the agent's responsibility, not the user's. Every mode silently updates its log file as context accumulates. User never asks "did you log this?"
 8. **Git safety** — never push to main unless `control=total`. Branches always start from latest main.
 9. **Huddle standalone** — huddle mode is outside the mode chain. It updates `lastMode` but no mode requires huddle and huddle requires no mode.
+10. **Tickets persist immediately** — whenever a new ticket is discussed, agreed, or scoped in any mode, the agent MUST write it to `progress.json > tickets[]` in the same response. Never mention a ticket ID without creating it. If the user references a ticket that doesn't exist, create it on the spot.
 
 ## Extending DevCadence
 
