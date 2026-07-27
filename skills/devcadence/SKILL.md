@@ -80,10 +80,11 @@ On first `/devcadence` invocation in a project, check for project config:
 This runs once. On subsequent invocations, `progress.json` is read directly.
 
 ### Standup
-- **Writes:** ticket, tasks, acceptance criteria
+- **Writes:** ticket, tasks, acceptance criteria, priority
 - **Purpose:** "What are we doing today?"
 - **Tone:** Normal (adapts to userRole)
 - **Caveman:** No
+- **Priority:** Ask "Priority? (high/medium/low)" when creating new tickets. Default: medium.
 - **Branch (control=branch/total):** At end, ask "Create branch {prefix}/{ticketId}?" If yes, create from main. Auto if control=total.
 
 ### Pair
@@ -449,6 +450,18 @@ Default location: `~/docs/<project>/`. Configurable per-project via `# Project C
 
 Agent resolves `<log-dir>` from project config. Fallback: `~/docs/<project>/`.
 
+## Utility Scripts
+
+Python scripts in `scripts/` for quick data access. Agents use these instead of grep/glob through JSON files.
+
+| Script | Purpose | Example |
+|--------|---------|---------|
+| `scripts/tickets.py` | Filter/sort tickets | `python3 scripts/tickets.py --priority high --status pending` |
+| `scripts/logs.py` | Search logs | `python3 scripts/logs.py --mode huddle --days 7` |
+| `scripts/progress.py` | Current state snapshot | `python3 scripts/progress.py` |
+
+All scripts accept `--help`, support `PROGRESS_JSON` and `DEVCADENCE_LOG_DIR` env vars, and output JSON with `--json`.
+
 ## Progress Schema
 
 ```json
@@ -476,6 +489,7 @@ Agent resolves `<log-dir>` from project config. Fallback: `~/docs/<project>/`.
       "task": "Description",
       "files": ["path/to/file.ts"],
       "acceptance": ["Criterion 1"],
+      "priority": "high|medium|low",
       "status": "pending|in-progress|completed",
       "createdAt": "ISO8601",
       "completedAt": null,
@@ -577,7 +591,8 @@ Observations track coding patterns across sessions. Structure supports `/devcade
 5. **Auto-update** — on review approval, update progress.json status, advance ticket, append to humanLog.
 6. **Caveman Full** — pair and review modes use terse, fragment-style communication.
 7. **Auto-logging** — logs are the agent's responsibility, not the user's. Every mode silently updates its log file as context accumulates. User never asks "did you log this?"
-8. **Git safety** — never push to main unless `control=total`. Branches always start from latest main.
+8. **Ticket priority** — sort pending tickets by priority on mode start: high → medium → low. If no high, show medium. If no medium, show low. Default priority: medium for tickets without explicit priority.
+9. **Git safety** — never push to main unless `control=total`. Branches always start from latest main.
 9. **Huddle standalone** — huddle mode is outside the mode chain. It updates `lastMode` but no mode requires huddle and huddle requires no mode.
 10. **Tickets persist immediately** — whenever a new ticket is discussed, agreed, or scoped in any mode, the agent MUST write it to `progress.json > tickets[]` in the same response. Never mention a ticket ID without creating it. If the user references a ticket that doesn't exist, create it on the spot.
 
