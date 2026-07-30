@@ -33,9 +33,35 @@ All logs use this schema:
     "nextAction": "What to do next"
   },
   "observations": [],
-  "references": []
+  "references": [],
+  "metadata": {
+    "model": "kimi-k2.7-code",
+    "model_provider": "opencode-go",
+    "usage": {
+      "prompt_tokens": 1234,
+      "completion_tokens": 567,
+      "total_tokens": 1801
+    }
+  }
 }
 ```
+
+`metadata` is optional. If a client (opencode go, wrapper script, etc.) can supply model or token usage, it writes them here. If absent, the log still validates. `usage` may be partial — for example, only `total_tokens` if the client cannot split prompt/completion.
+
+## Model and Token Usage Injection
+
+DevCadence does not require a specific client. When the runtime exposes model or token data, capture it in `metadata` using one of these methods:
+
+1. **Environment variables** (recommended convention):
+   - `OPENCODE_MODEL` — model identifier, e.g. `kimi-k2.7-code`
+   - `OPENCODE_MODEL_PROVIDER` — provider/runtime, e.g. `opencode-go`
+   - `OPENCODE_USAGE_PROMPT` — prompt token count
+   - `OPENCODE_USAGE_COMPLETION` — completion token count
+   - `OPENCODE_USAGE_TOTAL` — total token count
+2. **Manual injection**: the agent or a wrapper writes `metadata` when creating the log.
+3. **Future runtime support**: if opencode go later exposes usage via an API or structured env, the schema already accepts it.
+
+Agents MUST omit `metadata` fields when data is unavailable. Never fabricate token counts.
 
 ## Mode Chain
 

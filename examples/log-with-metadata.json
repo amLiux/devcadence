@@ -1,0 +1,28 @@
+{
+  "id": "2026-07-30-pair-example",
+  "mode": "pair",
+  "timestamp": "2026-07-30T12:34:56Z",
+  "phase": 2,
+  "ticketIds": ["DC-15"],
+  "global": false,
+  "tags": ["observability", "metadata"],
+  "human": {
+    "summary": "Example log entry with model and token usage metadata.",
+    "notes": "This log demonstrates how opencode go or another client can inject model identifier and token usage into a DevCadence log. The metadata block is optional and backward-compatible."
+  },
+  "machine": {
+    "context": "POC for DC-15. Optional metadata block contains model and usage fields.",
+    "nextAction": "Validate with scripts/logs.py --usage and scripts/progress.py --usage."
+  },
+  "observations": [],
+  "references": [],
+  "metadata": {
+    "model": "kimi-k2.7-code",
+    "model_provider": "opencode-go",
+    "usage": {
+      "prompt_tokens": 1234,
+      "completion_tokens": 567,
+      "total_tokens": 1801
+    }
+  }
+}

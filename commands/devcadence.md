@@ -41,3 +41,4 @@ Add a `# Project Config` block to this file to set log dir, progress path, ticke
 - Pair and review use caveman Full mode (terse, ~55% token reduction)
 - Standup and checkout use normal tone
 - Utility modes (config/extensions/new-extension) are standalone — no log, no chain validation
+- Optional log metadata: agents may write `metadata.model` and `metadata.usage` when the runtime exposes them (env vars: `OPENCODE_MODEL`, `OPENCODE_USAGE_*`). Omit if unavailable.
