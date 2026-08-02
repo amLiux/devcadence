@@ -27,11 +27,45 @@ def load_progress(path):
         return json.load(f)
 
 
+def load_log_usage(log_dir):
+    """Aggregate token usage from log metadata. Returns (total, per_ticket)."""
+    totals = {"prompt": 0, "completion": 0, "total": 0}
+    per_ticket = {}
+    if not log_dir.is_dir():
+        return totals, per_ticket
+    for f in sorted(log_dir.glob("*.json")):
+        try:
+            with open(f) as fh:
+                log = json.load(fh)
+        except (json.JSONDecodeError, IOError):
+            continue
+        usage = log.get("metadata", {}).get("usage")
+        if not usage:
+            continue
+        try:
+            prompt = int(usage.get("prompt_tokens", 0) or 0)
+            completion = int(usage.get("completion_tokens", 0) or 0)
+            total = int(usage.get("total_tokens", 0) or 0)
+        except (ValueError, TypeError):
+            continue
+        totals["prompt"] += prompt
+        totals["completion"] += completion
+        totals["total"] += total
+        for ticket_id in log.get("ticketIds", []):
+            if ticket_id not in per_ticket:
+                per_ticket[ticket_id] = {"prompt": 0, "completion": 0, "total": 0}
+            per_ticket[ticket_id]["prompt"] += prompt
+            per_ticket[ticket_id]["completion"] += completion
+            per_ticket[ticket_id]["total"] += total
+    return totals, per_ticket
+
+
 def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="Show DevCadence project progress")
     parser.add_argument("--json", action="store_true", help="Output raw JSON")
+    parser.add_argument("--usage", action="store_true", help="Show token usage from logs")
     args = parser.parse_args()
 
     path = find_progress()
@@ -92,6 +126,16 @@ def main():
         print(f"\n  Recent activity:")
         for entry in recent:
             print(f"    {entry.get('timestamp', '')[:10]}  {entry.get('message', '')[:70]}")
+
+    if args.usage:
+        log_dir = path.parent / "logs"
+        totals, per_ticket = load_log_usage(log_dir)
+        print(f"\n  Token usage (from log metadata):")
+        print(f"    Total:    prompt={totals['prompt']}, completion={totals['completion']}, total={totals['total']}")
+        if per_ticket:
+            print(f"    By ticket:")
+            for ticket_id, u in sorted(per_ticket.items()):
+                print(f"      {ticket_id}: prompt={u['prompt']}, completion={u['completion']}, total={u['total']}")
 
     print()
 
