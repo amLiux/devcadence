@@ -123,9 +123,45 @@ devcadence/
 ├── tests/                       # Schema validation
 ├── examples/                    # Example usage for different projects
 ├── install.sh                   # One-liner for any agent
+├── update.sh                    # Update existing DevCadence installation
 ├── LICENSE                      # MIT
 └── README.md
 ```
+
+## Updating DevCadence
+
+If you installed DevCadence a while ago, you can update to the latest version without losing your project config or logs:
+
+```bash
+cd your-project
+curl -sL https://raw.githubusercontent.com/amLiux/devcadence/main/update.sh | bash
+```
+
+`update.sh` will:
+- Pull the latest `SKILL.md` and command file
+- Preserve your `# Project Config` block
+- Pull any new scripts or examples
+- Show what changed
+
+Your existing `progress.json`, `humanLog`, and `logs/` are untouched.
+
+### Daily update check
+
+To make sure you don't miss improvements, run a quick check at the start of your day:
+
+```bash
+# Manual check
+bash -c 'curl -sL https://raw.githubusercontent.com/amLiux/devcadence/main/update.sh | bash'
+```
+
+Or add a daily cron job (macOS/Linux):
+
+```bash
+# Runs at 9am every day, logs to /tmp/devcadence-update.log
+0 9 * * * cd /path/to/your-project && bash -c 'curl -sL https://raw.githubusercontent.com/amLiux/devcadence/main/update.sh' > /tmp/devcadence-update.log 2>&1
+```
+
+DevCadence is additive and backward-compatible: old logs without metadata still validate, and existing project configs keep working.
 
 ## License
 

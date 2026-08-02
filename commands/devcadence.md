@@ -19,6 +19,7 @@ Modes:
 
 Utilities (outside chain, no log):
 - config — view/edit project config (log dir, git control, etc.)
+- note — quick humanLog entry without creating a full log
 - extensions — list sibling commands that extend DevCadence
 - new-extension — scaffold a new sibling command with domain SME
 

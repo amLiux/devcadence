@@ -325,6 +325,41 @@ After setup, `/devcadence standup` just works.
 - If no arg → show current role
 - No log file written (utility mode)
 
+### Note
+
+`/devcadence note <message>` — Quick humanLog entry without creating a full log file.
+
+**Usage:**
+
+```
+/devcadence note "Fixed edge case in filter_logs" --tags bug,logs --ticket DC-16
+```
+
+**Behavior:**
+1. Parses message and optional flags
+2. Appends a new `humanLog` entry to `progress.json`
+3. Does not write a log file in `logs/`
+4. Does not validate mode chain or update `lastMode`
+5. Optional `--tags` (comma-separated) and `--ticket` (defaults to current ticket if available)
+
+**humanLog entry format:**
+
+```json
+{
+  "id": "hl-XXX",
+  "type": "note",
+  "logRef": null,
+  "message": "<message>",
+  "timestamp": "ISO8601",
+  "phase": 2,
+  "ticketIds": ["DC-16"],
+  "author": "user",
+  "tags": ["bug", "logs"]
+}
+```
+
+Useful for quick breadcrumbs, one-line decisions, or things you want in the human digest without a full session.
+
 ### Extensions
 
 `/devcadence extensions` — List all sibling commands that extend DevCadence.
