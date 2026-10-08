@@ -1,16 +1,16 @@
 [build-system]
-requires = ["setuptools>=64"]
-build-backend = "setuptools.backends._legacy:_Backend"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "devcadence"
 version = "0.1.0"
+requires-python = ">=3.9"
 dependencies = []
 
 [project.optional-dependencies]
 migrate = ["fastapi>=0.100", "uvicorn>=0.20", "cryptography>=40"]
 dev = ["pytest"]
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["devcadence*"]
+[tool.uv]
+package = false

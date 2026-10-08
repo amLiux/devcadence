@@ -8,6 +8,6 @@ This project contains the DevCadence protocol skill.
 
 ## Build
 ```bash
-pip install -e ".[dev]"
-pytest tests/
+uv sync --extra dev
+uv run pytest tests/
 ```

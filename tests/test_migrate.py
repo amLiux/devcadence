@@ -1,9 +1,11 @@
 import json
+import sys
 from pathlib import Path
 
 import pytest
 
-from scripts.migrate import decrypt, encrypt, pack_project, unpack_project
+sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
+from migrate import decrypt, encrypt, pack_project, unpack_project
 
 
 def test_pack_and_unpack_roundtrip(tmp_path):
