@@ -520,8 +520,21 @@ Python scripts in `scripts/` for quick data access. Agents use these instead of 
 | `scripts/tickets.py` | Filter/sort tickets | `python3 scripts/tickets.py --priority high --status pending` |
 | `scripts/logs.py` | Search logs | `python3 scripts/logs.py --mode huddle --days 7` |
 | `scripts/progress.py` | Current state snapshot | `python3 scripts/progress.py` |
+| `scripts/migrate.py` | Export/import project logs across machines | `python3 scripts/migrate.py export my-project --serve` |
 
 All scripts accept `--help`, support `PROGRESS_JSON` and `DEVCADENCE_LOG_DIR` env vars, and output JSON with `--json`.
+
+### Migration (`scripts/migrate.py`)
+
+Moves a project's `progress.json` and `logs/` between machines without manual file copying.
+
+- `discover` — list projects under `~/docs/` that have `progress.json`.
+- `export <project>` — create an encrypted `.dcm` archive for offline/USB transfer.
+- `export <project> --serve` — start a temporary FastAPI endpoint, print a one-time transfer code, and serve the encrypted archive once.
+- `import <transfer-code> <target-dir>` — download, decrypt, and extract from a serve session.
+- `import --file <archive.dcm> --key <key> <target-dir>` — decrypt and extract a local archive.
+
+Archive is encrypted with Fernet before transport or storage; the API only handles ciphertext.
 
 ## Progress Schema
 

@@ -3,5 +3,6 @@ dist/
 *.pyc
 __pycache__/
 .env
+.venv/
 .opencode/
 .DS_Store
