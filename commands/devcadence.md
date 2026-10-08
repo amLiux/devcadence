@@ -39,7 +39,7 @@ Add a `# Project Config` block to this file to set log dir, progress path, ticke
 
 `/devcadence migrate` — move DevCadence project data between machines.
 
-Backed by `scripts/migrate.py`. Install optional deps: `pip install -e ".[migrate]"`.
+Backed by `scripts/migrate.py`. Install optional deps: `uv sync --extra migrate`.
 
 ```bash
 # List discoverable projects

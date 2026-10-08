@@ -536,6 +536,8 @@ Moves a project's `progress.json` and `logs/` between machines without manual fi
 
 Archive is encrypted with Fernet before transport or storage; the API only handles ciphertext.
 
+Run with `uv run python scripts/migrate.py ...` after `uv sync --extra migrate`.
+
 ## Progress Schema
 
 ```json

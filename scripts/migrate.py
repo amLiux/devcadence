@@ -179,7 +179,7 @@ def cmd_export(args):
 
     if args.serve:
         if uvicorn is None:
-            print("Serve mode requires fastapi and uvicorn. Install: pip install devcadence[migrate]", file=sys.stderr)
+            print("Serve mode requires fastapi and uvicorn. Run: uv sync --extra migrate", file=sys.stderr)
             sys.exit(1)
 
         code = secrets.token_urlsafe(8)
