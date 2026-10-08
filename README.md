@@ -104,8 +104,8 @@ All commands share the same project config.
 ```bash
 git clone https://github.com/amLiux/devcadence.git
 cd devcadence
-pip install -e ".[dev]"
-pytest tests/
+uv sync --extra dev
+uv run pytest tests/
 ```
 
 To test the installer:
@@ -170,7 +170,7 @@ When you switch computers, DevCadence can move a project's `progress.json` and `
 Install the optional migration dependencies:
 
 ```bash
-pip install -e ".[migrate]"
+uv sync --extra migrate
 ```
 
 On the source machine:
