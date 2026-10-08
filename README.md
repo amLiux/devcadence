@@ -163,6 +163,43 @@ Or add a daily cron job (macOS/Linux):
 
 DevCadence is additive and backward-compatible: old logs without metadata still validate, and existing project configs keep working.
 
+## Migrating between machines
+
+When you switch computers, DevCadence can move a project's `progress.json` and `logs/` for you — no manual JSON copying.
+
+Install the optional migration dependencies:
+
+```bash
+pip install -e ".[migrate]"
+```
+
+On the source machine:
+
+```bash
+# Discover projects
+python scripts/migrate.py discover
+
+# Option A: serve directly over the network
+python scripts/migrate.py export my-project --serve
+# Copy the transfer code.
+
+# Option B: export to an encrypted file (USB/cloud fallback)
+python scripts/migrate.py export my-project -o my-project.dcm
+# Save the printed decryption key.
+```
+
+On the new machine:
+
+```bash
+# Option A: import from the temporary source API
+python scripts/migrate.py import <transfer-code> ~/docs/my-project/
+
+# Option B: import from the encrypted file
+python scripts/migrate.py import --file my-project.dcm --key <key> ~/docs/my-project/
+```
+
+Serve mode starts a temporary FastAPI endpoint on the source machine, serves the encrypted archive once, and shuts down. The transfer code contains the endpoint, auth token, and decryption key. The API never sees plaintext logs.
+
 ## License
 
 MIT
