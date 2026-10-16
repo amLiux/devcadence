@@ -13,6 +13,7 @@ import subprocess
 import sys
 import urllib.request
 from pathlib import Path
+from typing import List, Optional
 
 REPO_RAW = "https://raw.githubusercontent.com/amLiux/devcadence/main"
 
@@ -30,7 +31,7 @@ MANAGED_FILES = [
 ]
 
 
-def _progress_locations() -> list[Path]:
+def _progress_locations() -> List[Path]:
     env = os.environ.get("PROGRESS_JSON", "")
     if env:
         return [Path(env)]
@@ -40,7 +41,7 @@ def _progress_locations() -> list[Path]:
     ]
 
 
-def find_progress() -> Path | None:
+def find_progress() -> Optional[Path]:
     for p in _progress_locations():
         if p.exists():
             return p
@@ -51,7 +52,7 @@ def _remote_url(local_path: str) -> str:
     return f"{REPO_RAW}/{local_path}"
 
 
-def _fetch(url: str) -> bytes | None:
+def _fetch(url: str) -> Optional[bytes]:
     try:
         with urllib.request.urlopen(url, timeout=30) as resp:
             return resp.read()
@@ -63,7 +64,7 @@ def _hash(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
 
 
-def _read_local(path: Path) -> bytes | None:
+def _read_local(path: Path) -> Optional[bytes]:
     try:
         return path.read_bytes()
     except (OSError, IOError):

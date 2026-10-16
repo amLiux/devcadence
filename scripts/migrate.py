@@ -13,6 +13,7 @@ import tarfile
 import time
 import urllib.request
 from pathlib import Path
+from typing import Tuple
 
 from cryptography.fernet import Fernet
 
@@ -87,7 +88,7 @@ def unpack_project(archive_bytes: bytes, target_dir: Path):
         tar.extractall(path=target_dir)
 
 
-def encrypt(data: bytes) -> tuple[bytes, str]:
+def encrypt(data: bytes) -> Tuple[bytes, str]:
     key = Fernet.generate_key()
     f = Fernet(key)
     return f.encrypt(data), key.decode()

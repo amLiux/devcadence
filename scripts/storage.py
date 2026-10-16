@@ -13,6 +13,7 @@ import sqlite3
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 
 def _hash_file(path: Path) -> str:
@@ -40,7 +41,7 @@ DEFAULT_PROGRESS_LOCATIONS = [
 ]
 
 
-def find_progress() -> Path | None:
+def find_progress() -> Optional[Path]:
     if PROGRESS_PATH_ENV and Path(PROGRESS_PATH_ENV).exists():
         return Path(PROGRESS_PATH_ENV)
     for p in DEFAULT_PROGRESS_LOCATIONS:
@@ -322,7 +323,7 @@ def _sync_logs(conn: sqlite3.Connection, log_dir: Path) -> None:
     conn.commit()
 
 
-def ensure_synced(progress_path: Path, log_dir: Path | None = None) -> sqlite3.Connection:
+def ensure_synced(progress_path: Path, log_dir: Optional[Path] = None) -> sqlite3.Connection:
     """Open the SQLite index, initialize schema, and sync with JSON files."""
     db = db_path_for_progress(progress_path)
     conn = sqlite3.connect(str(db))
@@ -342,10 +343,10 @@ def ensure_synced(progress_path: Path, log_dir: Path | None = None) -> sqlite3.C
 
 def get_tickets(
     conn: sqlite3.Connection,
-    status: str | None = None,
-    priority: str | None = None,
-    phase: int | None = None,
-) -> list[dict]:
+    status: Optional[str] = None,
+    priority: Optional[str] = None,
+    phase: Optional[int] = None,
+) -> List[dict]:
     query = "SELECT raw FROM tickets WHERE 1=1"
     params = []
     if status:
@@ -362,12 +363,12 @@ def get_tickets(
 
 def get_logs(
     conn: sqlite3.Connection,
-    mode: str | None = None,
-    ticket_id: str | None = None,
-    days: int | None = None,
+    mode: Optional[str] = None,
+    ticket_id: Optional[str] = None,
+    days: Optional[int] = None,
     global_only: bool = False,
-    model: str | None = None,
-) -> list[dict]:
+    model: Optional[str] = None,
+) -> List[dict]:
     if ticket_id:
         query = """
             SELECT l.raw FROM logs l
@@ -416,7 +417,7 @@ def get_progress_summary(conn: sqlite3.Connection) -> dict:
     }
 
 
-def get_recent_human_log(conn: sqlite3.Connection, limit: int = 3) -> list[dict]:
+def get_recent_human_log(conn: sqlite3.Connection, limit: int = 3) -> List[dict]:
     rows = conn.execute(
         "SELECT raw FROM human_log ORDER BY timestamp DESC LIMIT ?",
         (limit,),
@@ -424,9 +425,9 @@ def get_recent_human_log(conn: sqlite3.Connection, limit: int = 3) -> list[dict]
     return [json.loads(row[0]) for row in rows]
 
 
-def aggregate_usage(conn: sqlite3.Connection) -> tuple[dict, dict]:
+def aggregate_usage(conn: sqlite3.Connection) -> Tuple[dict, dict]:
     totals = {"prompt": 0, "completion": 0, "total": 0}
-    per_ticket: dict[str, dict] = {}
+    per_ticket: Dict[str, dict] = {}
 
     rows = conn.execute(
         """
@@ -453,7 +454,7 @@ def aggregate_usage(conn: sqlite3.Connection) -> tuple[dict, dict]:
     return totals, per_ticket
 
 
-def get_usage_for_log(log: dict) -> dict | None:
+def get_usage_for_log(log: dict) -> Optional[dict]:
     """Extract usage from a raw log dict (used by callers that already have JSON)."""
     usage = log.get("metadata", {}).get("usage")
     if not usage:
@@ -468,7 +469,7 @@ def get_usage_for_log(log: dict) -> dict | None:
         return None
 
 
-def sync_only(progress_path: Path, log_dir: Path | None = None) -> None:
+def sync_only(progress_path: Path, log_dir: Optional[Path] = None) -> None:
     """Build/update the SQLite index without returning a connection."""
     with ensure_synced(progress_path, log_dir) as conn:
         conn.execute("PRAGMA optimize")
@@ -476,9 +477,9 @@ def sync_only(progress_path: Path, log_dir: Path | None = None) -> None:
 
 def try_sync(
     progress_path: Path,
-    log_dir: Path | None = None,
+    log_dir: Optional[Path] = None,
     no_sqlite: bool = False,
-) -> sqlite3.Connection | None:
+) -> Optional[sqlite3.Connection]:
     """Return a synced SQLite connection, or None if SQLite is disabled or fails.
 
     Prints a warning to stderr when falling back to JSON.
