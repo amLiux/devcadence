@@ -522,6 +522,7 @@ Python scripts in `scripts/` for quick data access. Agents use these instead of 
 | `scripts/progress.py` | Current state snapshot | `python3 scripts/progress.py` |
 | `scripts/storage.py` | Build/update SQLite index | `python3 scripts/storage.py` |
 | `scripts/migrate.py` | Export/import project logs across machines | `python3 scripts/migrate.py export my-project --serve` |
+| `scripts/update.py` | Check/apply DevCadence updates | `python3 scripts/update.py --check` |
 
 All scripts accept `--help`, support `PROGRESS_JSON` and `DEVCADENCE_LOG_DIR` env vars, and output JSON with `--json`.
 
@@ -535,6 +536,16 @@ Hybrid storage: JSON files remain canonical; a local SQLite index (`.devcadence.
 - If the index is missing, scripts auto-build it. If SQLite fails, they warn and fall back to JSON.
 - The SQLite schema maps cleanly to a future dedicated database (e.g., PostgreSQL).
 - No new dependencies: uses stdlib `sqlite3`.
+
+### Update (`scripts/update.py`)
+
+Lightweight wrapper around `update.sh` for the `/devcadence update` utility mode.
+
+- `python3 scripts/update.py --check` — compare local managed files against upstream `main` without modifying anything.
+- `python3 scripts/update.py --apply` — run `update.sh` after explicit user confirmation.
+- `python3 scripts/update.py --apply --yes` — apply without prompting (use with care).
+- Appends a `humanLog` entry after a successful update.
+- Never modifies files in `--check` mode.
 
 ### Migration (`scripts/migrate.py`)
 
