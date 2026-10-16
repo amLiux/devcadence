@@ -17,31 +17,79 @@ from typing import List, Optional
 
 REPO_RAW = "https://raw.githubusercontent.com/amLiux/devcadence/main"
 
-# Files managed by update.sh. When DevCadence is installed in a project, files
-# live under .opencode/. When working on the devcadence repo itself, source files
-# live at the repo root.
-MANAGED_FILES = [
-    ".opencode/skills/devcadence/SKILL.md",
-    ".opencode/commands/devcadence.md",
-    "skills/devcadence/SKILL.md",
-    "commands/devcadence.md",
-    "scripts/tickets.py",
-    "scripts/logs.py",
-    "scripts/progress.py",
-    "scripts/storage.py",
-    "scripts/update.py",
-    "scripts/migrate.py",
+# Files managed by update.sh. Paths are repo-relative (what exists on GitHub).
+# update.py maps these to the local layout (installed .opencode/ or repo source).
+REPO_MANAGED_FILES = [
+    ("skills/devcadence/SKILL.md", ".opencode/skills/devcadence/SKILL.md"),
+    ("commands/devcadence.md", ".opencode/commands/devcadence.md"),
+    ("scripts/tickets.py", "scripts/tickets.py"),
+    ("scripts/logs.py", "scripts/logs.py"),
+    ("scripts/progress.py", "scripts/progress.py"),
+    ("scripts/storage.py", "scripts/storage.py"),
+    ("scripts/update.py", "scripts/update.py"),
+    ("scripts/migrate.py", "scripts/migrate.py"),
 ]
+
+
+def _detect_layout() -> str:
+    """Return 'installed' if .opencode/ layout, 'source' if repo root layout."""
+    if Path(".opencode/skills/devcadence/SKILL.md").exists():
+        return "installed"
+    if Path("skills/devcadence/SKILL.md").exists():
+        return "source"
+    # Default to installed if .opencode exists at all, otherwise source.
+    if Path(".opencode").exists():
+        return "installed"
+    return "source"
+
+
+def _managed_files() -> List[Tuple[str, Path]]:
+    """Return list of (remote_path, local_path) for the current layout."""
+    layout = _detect_layout()
+    result = []
+    for remote, installed_local in REPO_MANAGED_FILES:
+        if layout == "installed":
+            local = Path(installed_local)
+        else:
+            local = Path(remote)
+        result.append((remote, local))
+    return result
+
+
+def _parse_progress_from_command_file() -> Optional[Path]:
+    """Read .opencode/commands/devcadence.md and extract Progress path from Project Config."""
+    cmd_path = Path(".opencode/commands/devcadence.md")
+    if not cmd_path.exists():
+        return None
+    try:
+        text = cmd_path.read_text()
+    except (OSError, IOError):
+        return None
+    for line in text.splitlines():
+        line = line.strip()
+        if line.startswith("# - Progress:"):
+            path_str = line.split("# - Progress:", 1)[1].strip()
+            return Path(path_str).expanduser()
+    return None
 
 
 def _progress_locations() -> List[Path]:
     env = os.environ.get("PROGRESS_JSON", "")
     if env:
         return [Path(env)]
-    return [
-        Path.home() / "docs" / "devcadence" / "progress.json",
-        Path("progress.json"),
-    ]
+
+    from_cmd = _parse_progress_from_command_file()
+    if from_cmd:
+        return [from_cmd, Path("progress.json")]
+
+    # Fallback: infer from current directory name
+    project = Path.cwd().name
+    if project:
+        return [
+            Path.home() / "docs" / project / "progress.json",
+            Path("progress.json"),
+        ]
+    return [Path("progress.json")]
 
 
 def find_progress() -> Optional[Path]:
@@ -94,23 +142,23 @@ def _backup_config(cmd_path: Path) -> str:
 def check_updates() -> dict:
     """Return status of managed files without modifying anything."""
     results = {}
-    for local_path in MANAGED_FILES:
-        local = Path(local_path)
-        remote = _fetch(_remote_url(local_path))
+    for remote_path, local in _managed_files():
+        remote = _fetch(_remote_url(remote_path))
         local_content = _read_local(local)
 
+        display = str(local)
         if remote is None:
-            results[local_path] = {"status": "unavailable", "reason": "failed to fetch remote"}
+            results[display] = {"status": "unavailable", "reason": "failed to fetch remote"}
             continue
 
         if local_content is None:
-            results[local_path] = {"status": "missing", "reason": "local file not found"}
+            results[display] = {"status": "missing", "reason": "local file not found"}
             continue
 
         if _hash(local_content) == _hash(remote):
-            results[local_path] = {"status": "up-to-date"}
+            results[display] = {"status": "up-to-date"}
         else:
-            results[local_path] = {"status": "update-available"}
+            results[display] = {"status": "update-available"}
     return results
 
 
