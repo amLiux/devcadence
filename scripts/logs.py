@@ -6,6 +6,8 @@ import os
 import sys
 from pathlib import Path
 
+from storage import find_progress, get_logs, try_sync
+
 LOG_DIR = os.environ.get("DEVCADENCE_LOG_DIR", "")
 DEFAULT_LOCATIONS = [
     Path.home() / "docs" / "devcadence" / "logs",
@@ -105,15 +107,27 @@ def main():
     parser.add_argument("--json", action="store_true", help="Output raw JSON")
     parser.add_argument("--full", action="store_true", help="Show full log details")
     parser.add_argument("--usage", action="store_true", help="Show token usage totals")
+    parser.add_argument("--no-sqlite", action="store_true", help="Force JSON fallback instead of SQLite index")
     args = parser.parse_args()
+
+    progress_path = find_progress()
+    if not progress_path:
+        print("progress.json not found. Set PROGRESS_JSON or run from project root.", file=sys.stderr)
+        sys.exit(1)
 
     log_dir = find_log_dir()
     if not log_dir:
-        print("Logs directory not found. Set DEVCADENCE_LOG_DIR or run from project root.", file=sys.stderr)
-        sys.exit(1)
+        log_dir = progress_path.parent / "logs"
 
-    logs = load_logs(log_dir)
-    logs = filter_logs(logs, mode=args.mode, ticket_id=args.ticket, days=args.days, global_only=args.global_only, model=args.model)
+    conn = try_sync(progress_path, log_dir, no_sqlite=args.no_sqlite)
+    if conn:
+        logs = get_logs(conn, mode=args.mode, ticket_id=args.ticket, days=args.days, global_only=args.global_only, model=args.model)
+    else:
+        if not log_dir.is_dir():
+            print("Logs directory not found. Set DEVCADENCE_LOG_DIR or run from project root.", file=sys.stderr)
+            sys.exit(1)
+        logs = load_logs(log_dir)
+        logs = filter_logs(logs, mode=args.mode, ticket_id=args.ticket, days=args.days, global_only=args.global_only, model=args.model)
 
     if args.json:
         print(json.dumps(logs, indent=2, default=str))

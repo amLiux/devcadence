@@ -6,6 +6,8 @@ import os
 import sys
 from pathlib import Path
 
+from storage import get_tickets, try_sync
+
 PROGRESS_PATH = os.environ.get("PROGRESS_JSON", "")
 DEFAULT_LOCATIONS = [
     Path.home() / "docs" / "devcadence" / "progress.json",
@@ -67,6 +69,7 @@ def main():
     parser.add_argument("--all", action="store_true", help="Show all tickets (default: pending + in-progress only)")
     parser.add_argument("--verbose", "-v", action="store_true", help="Show acceptance criteria")
     parser.add_argument("--json", action="store_true", help="Output raw JSON")
+    parser.add_argument("--no-sqlite", action="store_true", help="Force JSON fallback instead of SQLite index")
     args = parser.parse_args()
 
     path = find_progress()
@@ -74,13 +77,20 @@ def main():
         print("progress.json not found. Set PROGRESS_JSON or run from project root.", file=sys.stderr)
         sys.exit(1)
 
-    data = load_progress(path)
-    tickets = data.get("tickets", [])
+    conn = try_sync(path, no_sqlite=args.no_sqlite)
+    if conn:
+        tickets = get_tickets(conn, status=args.status, priority=args.priority, phase=args.phase)
+        if not args.all and not args.status:
+            tickets = [t for t in tickets if t.get("status") in ("pending", "in-progress")]
+    else:
+        data = load_progress(path)
+        tickets = data.get("tickets", [])
 
-    if not args.all and not args.status:
-        tickets = [t for t in tickets if t.get("status") in ("pending", "in-progress")]
+        if not args.all and not args.status:
+            tickets = [t for t in tickets if t.get("status") in ("pending", "in-progress")]
 
-    tickets = filter_tickets(tickets, status=args.status, priority=args.priority, phase=args.phase)
+        tickets = filter_tickets(tickets, status=args.status, priority=args.priority, phase=args.phase)
+
     tickets = sort_tickets(tickets)
 
     if args.json:
