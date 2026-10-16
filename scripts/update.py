@@ -148,13 +148,26 @@ def print_check(results: dict) -> int:
 
 
 def apply_update(dry_run: bool = False) -> bool:
-    """Run update.sh. If dry_run, only show what would happen."""
-    update_sh = Path("update.sh")
-    if not update_sh.exists():
-        print("update.sh not found in current directory.", file=sys.stderr)
-        return False
+    """Run update.sh. If update.sh is missing, fetch it to a temp file first."""
+    import tempfile
 
-    if dry_run:
+    update_sh = Path("update.sh")
+    temp_path = None
+
+    if not update_sh.exists():
+        remote = _fetch(f"{REPO_RAW}/update.sh")
+        if remote is None:
+            print("update.sh not found locally and could not be fetched from upstream.", file=sys.stderr)
+            return False
+        if dry_run:
+            print("Would fetch update.sh from upstream and run it.")
+            return True
+        with tempfile.NamedTemporaryFile(mode="wb", suffix="-update.sh", delete=False) as tmp:
+            tmp.write(remote)
+            temp_path = Path(tmp.name)
+        temp_path.chmod(0o755)
+        update_sh = temp_path
+    elif dry_run:
         print("Would run: bash update.sh")
         return True
 
@@ -171,6 +184,9 @@ def apply_update(dry_run: bool = False) -> bool:
     except FileNotFoundError:
         print("bash not found. Cannot run update.sh.", file=sys.stderr)
         return False
+    finally:
+        if temp_path and temp_path.exists():
+            temp_path.unlink()
 
 
 def _next_human_log_id(human_log: list) -> str:
