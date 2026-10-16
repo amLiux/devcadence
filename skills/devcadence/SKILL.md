@@ -520,9 +520,21 @@ Python scripts in `scripts/` for quick data access. Agents use these instead of 
 | `scripts/tickets.py` | Filter/sort tickets | `python3 scripts/tickets.py --priority high --status pending` |
 | `scripts/logs.py` | Search logs | `python3 scripts/logs.py --mode huddle --days 7` |
 | `scripts/progress.py` | Current state snapshot | `python3 scripts/progress.py` |
+| `scripts/storage.py` | Build/update SQLite index | `python3 scripts/storage.py` |
 | `scripts/migrate.py` | Export/import project logs across machines | `python3 scripts/migrate.py export my-project --serve` |
 
 All scripts accept `--help`, support `PROGRESS_JSON` and `DEVCADENCE_LOG_DIR` env vars, and output JSON with `--json`.
+
+### SQLite Index (`scripts/storage.py`)
+
+Hybrid storage: JSON files remain canonical; a local SQLite index (`.devcadence.db` next to `progress.json`) is built for fast queries.
+
+- `scripts/storage.py` — build or update the index from `progress.json` and `logs/*.json`.
+- Hash-based lazy sync: only changed files are re-indexed.
+- `tickets.py`, `logs.py`, `progress.py` use SQLite by default; pass `--no-sqlite` to query JSON directly.
+- If the index is missing, scripts auto-build it. If SQLite fails, they warn and fall back to JSON.
+- The SQLite schema maps cleanly to a future dedicated database (e.g., PostgreSQL).
+- No new dependencies: uses stdlib `sqlite3`.
 
 ### Migration (`scripts/migrate.py`)
 

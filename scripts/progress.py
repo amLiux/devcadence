@@ -6,6 +6,8 @@ import os
 import sys
 from pathlib import Path
 
+from storage import aggregate_usage, find_progress, get_progress_summary, get_recent_human_log, get_tickets, try_sync
+
 PROGRESS_PATH = os.environ.get("PROGRESS_JSON", "")
 DEFAULT_LOCATIONS = [
     Path.home() / "docs" / "devcadence" / "progress.json",
@@ -66,6 +68,7 @@ def main():
     parser = argparse.ArgumentParser(description="Show DevCadence project progress")
     parser.add_argument("--json", action="store_true", help="Output raw JSON")
     parser.add_argument("--usage", action="store_true", help="Show token usage from logs")
+    parser.add_argument("--no-sqlite", action="store_true", help="Force JSON fallback instead of SQLite index")
     args = parser.parse_args()
 
     path = find_progress()
@@ -73,11 +76,29 @@ def main():
         print("progress.json not found. Set PROGRESS_JSON or run from project root.", file=sys.stderr)
         sys.exit(1)
 
-    data = load_progress(path)
-
-    if args.json:
-        print(json.dumps(data, indent=2, default=str))
-        return
+    conn = try_sync(path, no_sqlite=args.no_sqlite)
+    if conn:
+        if args.json:
+            # For raw JSON, still read canonical progress.json
+            data = load_progress(path)
+            print(json.dumps(data, indent=2, default=str))
+            return
+        data = load_progress(path)
+        summary = get_progress_summary(conn)
+        recent = get_recent_human_log(conn, limit=3)
+    else:
+        data = load_progress(path)
+        if args.json:
+            print(json.dumps(data, indent=2, default=str))
+            return
+        tickets = data.get("tickets", [])
+        summary = {
+            "total": len(tickets),
+            "pending": len([t for t in tickets if t.get("status") == "pending"]),
+            "in_progress": len([t for t in tickets if t.get("status") == "in-progress"]),
+            "completed": len([t for t in tickets if t.get("status") == "completed"]),
+        }
+        recent = data.get("humanLog", [])[-3:]
 
     project = data.get("project", "?")
     phase = data.get("currentPhase", "?")
@@ -85,11 +106,6 @@ def main():
     role = data.get("userRole", "?")
     caveman = data.get("cavemanMode", "?")
     git = data.get("git", {})
-
-    tickets = data.get("tickets", [])
-    pending = [t for t in tickets if t.get("status") == "pending"]
-    in_progress = [t for t in tickets if t.get("status") == "in-progress"]
-    completed = [t for t in tickets if t.get("status") == "completed"]
 
     print(f"\n{'=' * 50}")
     print(f"  DevCadence: {project}")
@@ -101,35 +117,50 @@ def main():
     print(f"  Git:         {git.get('control', 'manual')} ({git.get('repo', 'unknown')})")
     print()
 
-    if in_progress:
+    if summary["in_progress"]:
         print("  In Progress:")
-        for t in in_progress:
+        if conn:
+            in_progress_tickets = get_tickets(conn, status="in-progress")
+            PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2}
+            in_progress_tickets = sorted(in_progress_tickets, key=lambda t: PRIORITY_ORDER.get(t.get("priority", "medium"), 1))
+        else:
+            in_progress_tickets = [t for t in data.get("tickets", []) if t.get("status") == "in-progress"]
+        for t in in_progress_tickets:
             pri = t.get("priority", "medium").upper()
             print(f"    [{pri:6}] {t['id']:30} {t.get('task', '')}")
         print()
 
-    if pending:
+    if summary["pending"]:
         print("  Pending (by priority):")
-        PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2}
-        sorted_pending = sorted(pending, key=lambda t: PRIORITY_ORDER.get(t.get("priority", "medium"), 1))
-        for t in sorted_pending:
+        if conn:
+            pending_tickets = get_tickets(conn, status="pending")
+            PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2}
+            pending_tickets = sorted(pending_tickets, key=lambda t: PRIORITY_ORDER.get(t.get("priority", "medium"), 1))
+        else:
+            PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2}
+            pending_tickets = sorted(
+                [t for t in data.get("tickets", []) if t.get("status") == "pending"],
+                key=lambda t: PRIORITY_ORDER.get(t.get("priority", "medium"), 1),
+            )
+        for t in pending_tickets:
             pri = t.get("priority", "medium").upper()
             print(f"    [{pri:6}] {t['id']:30} {t.get('task', '')}")
         print()
 
-    print(f"  Completed: {len(completed)}")
-    print(f"  Total:     {len(tickets)}")
+    print(f"  Completed: {summary['completed']}")
+    print(f"  Total:     {summary['total']}")
 
-    human_log = data.get("humanLog", [])
-    if human_log:
-        recent = human_log[-3:]
+    if recent:
         print(f"\n  Recent activity:")
         for entry in recent:
             print(f"    {entry.get('timestamp', '')[:10]}  {entry.get('message', '')[:70]}")
 
     if args.usage:
-        log_dir = path.parent / "logs"
-        totals, per_ticket = load_log_usage(log_dir)
+        if conn:
+            totals, per_ticket = aggregate_usage(conn)
+        else:
+            log_dir = path.parent / "logs"
+            totals, per_ticket = load_log_usage(log_dir)
         print(f"\n  Token usage (from log metadata):")
         print(f"    Total:    prompt={totals['prompt']}, completion={totals['completion']}, total={totals['total']}")
         if per_ticket:
