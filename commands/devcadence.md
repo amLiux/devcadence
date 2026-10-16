@@ -23,6 +23,16 @@ Utilities (outside chain, no log):
 - extensions — list sibling commands that extend DevCadence
 - new-extension — scaffold a new sibling command with domain SME
 - migrate — export/import project logs and progress.json between machines
+- storage — build/update SQLite index (via `scripts/storage.py`)
+- update — check/apply DevCadence updates (via `scripts/update.py`)
+
+Scripts use SQLite by default for fast indexed queries. Pass `--no-sqlite` to query JSON directly:
+- `python scripts/tickets.py --all`
+- `python scripts/logs.py --days 7`
+- `python scripts/progress.py`
+- `python scripts/tickets.py --no-sqlite --all` (JSON fallback)
+
+JSON files remain canonical. The SQLite index (`.devcadence.db`) is rebuilt lazily by file hash.
 
 ## Per-Project Config
 
@@ -59,6 +69,25 @@ python scripts/migrate.py import <transfer-code> <target-dir>
 ```
 
 Serve mode starts a temporary FastAPI endpoint on the source machine, serves the encrypted archive once, then shuts down. The transfer code contains the endpoint, token, and decryption key.
+
+## Update
+
+`/devcadence update` — check for or apply upstream DevCadence updates.
+
+Backed by `scripts/update.py`. It wraps `update.sh` and never modifies files without explicit intent.
+
+```bash
+# Check if updates are available (read-only)
+python scripts/update.py --check
+
+# Apply updates after confirmation
+python scripts/update.py --apply
+
+# Apply updates without prompting (use with care)
+python scripts/update.py --apply --yes
+```
+
+On a successful `--apply`, a `humanLog` entry is appended automatically.
 
 ## Rules
 
