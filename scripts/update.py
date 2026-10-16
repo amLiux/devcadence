@@ -28,6 +28,9 @@ MANAGED_FILES = [
     "scripts/tickets.py",
     "scripts/logs.py",
     "scripts/progress.py",
+    "scripts/storage.py",
+    "scripts/update.py",
+    "scripts/migrate.py",
 ]
 
 
