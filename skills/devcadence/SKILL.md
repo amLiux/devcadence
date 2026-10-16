@@ -521,8 +521,19 @@ Python scripts in `scripts/` for quick data access. Agents use these instead of 
 | `scripts/logs.py` | Search logs | `python3 scripts/logs.py --mode huddle --days 7` |
 | `scripts/progress.py` | Current state snapshot | `python3 scripts/progress.py` |
 | `scripts/migrate.py` | Export/import project logs across machines | `python3 scripts/migrate.py export my-project --serve` |
+| `scripts/update.py` | Check/apply DevCadence updates | `python3 scripts/update.py --check` |
 
 All scripts accept `--help`, support `PROGRESS_JSON` and `DEVCADENCE_LOG_DIR` env vars, and output JSON with `--json`.
+
+### Update (`scripts/update.py`)
+
+Lightweight wrapper around `update.sh` for the `/devcadence update` utility mode.
+
+- `python3 scripts/update.py --check` — compare local managed files against upstream `main` without modifying anything.
+- `python3 scripts/update.py --apply` — run `update.sh` after explicit user confirmation.
+- `python3 scripts/update.py --apply --yes` — apply without prompting (use with care).
+- Appends a `humanLog` entry after a successful update.
+- Never modifies files in `--check` mode.
 
 ### Migration (`scripts/migrate.py`)
 
