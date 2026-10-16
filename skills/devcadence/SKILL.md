@@ -63,6 +63,19 @@ DevCadence does not require a specific client. When the runtime exposes model or
 
 Agents MUST omit `metadata` fields when data is unavailable. Never fabricate token counts.
 
+## Agent Instructions
+
+These instructions are mandatory for every agent session. They reduce variance between agents and keep the protocol predictable.
+
+1. **Read the command file** (e.g., `.opencode/commands/devcadence.md`) on every `/devcadence` invocation. It contains the project root, config, and dispatcher.
+2. **Read `SECURITY.md`** from the project root if it exists, before generating code or running commands. Apply its rules. When in conflict, `SECURITY.md` overrides this skill.
+3. **Use the project root as working directory** for all commands unless explicitly noted otherwise. The command file declares the project root.
+4. **Do not guess paths.** Use the File Manifest below for exact file and directory locations.
+5. **Scripts live in `scripts/` at project root** and are run with `python3 scripts/<file>.py ...` (or `uv run python ...` if the project uses uv).
+6. **Maintain `progress.json` and write logs automatically.** The user should never have to ask "did you log this?" Update them in the same response where decisions or state changes occur.
+7. **Respect the mode chain** but do not block on unusual transitions; warn and continue.
+8. **Never push to main** unless `git.control` is `total`.
+
 ## Security Context
 
 If the project has a `SECURITY.md` file at its root, agents MUST read it on every session start and apply its rules before generating code, running commands, or modifying configuration. `SECURITY.md` should contain:
@@ -73,6 +86,27 @@ If the project has a `SECURITY.md` file at its root, agents MUST read it on ever
 - An agent session checklist
 
 When in conflict, `SECURITY.md` overrides general DevCadence guidance for that project.
+
+## File Manifest
+
+These are the canonical files and directories DevCadence uses. Agents should read declared files directly instead of globbing or guessing paths.
+
+| Path | Purpose |
+|------|---------|
+| `.opencode/commands/devcadence.md` | Command file (this file's counterpart in a project install) |
+| `.opencode/skills/devcadence/SKILL.md` | Full protocol specification |
+| `scripts/tickets.py` | Ticket query utility |
+| `scripts/logs.py` | Log query utility |
+| `scripts/progress.py` | Progress snapshot utility |
+| `scripts/storage.py` | SQLite index builder/query |
+| `scripts/update.py` | DevCadence update checker/applier |
+| `scripts/migrate.py` | Migration assistant (optional deps) |
+| `<log-dir>/progress.json` | Project state (tickets, humanLog, observations) |
+| `<log-dir>/logs/` | Session logs |
+| `<log-dir>/.devcadence.db` | SQLite index (auto-built) |
+| `SECURITY.md` | Project security context (read if present) |
+
+`<log-dir>` defaults to `~/docs/<project>/` and is configurable via `# Project Config`.
 
 ## Mode Chain
 
