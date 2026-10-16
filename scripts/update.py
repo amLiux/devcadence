@@ -56,14 +56,40 @@ def _managed_files() -> List[Tuple[str, Path]]:
     return result
 
 
+def _parse_progress_from_command_file() -> Optional[Path]:
+    """Read .opencode/commands/devcadence.md and extract Progress path from Project Config."""
+    cmd_path = Path(".opencode/commands/devcadence.md")
+    if not cmd_path.exists():
+        return None
+    try:
+        text = cmd_path.read_text()
+    except (OSError, IOError):
+        return None
+    for line in text.splitlines():
+        line = line.strip()
+        if line.startswith("# - Progress:"):
+            path_str = line.split("# - Progress:", 1)[1].strip()
+            return Path(path_str).expanduser()
+    return None
+
+
 def _progress_locations() -> List[Path]:
     env = os.environ.get("PROGRESS_JSON", "")
     if env:
         return [Path(env)]
-    return [
-        Path.home() / "docs" / "devcadence" / "progress.json",
-        Path("progress.json"),
-    ]
+
+    from_cmd = _parse_progress_from_command_file()
+    if from_cmd:
+        return [from_cmd, Path("progress.json")]
+
+    # Fallback: infer from current directory name
+    project = Path.cwd().name
+    if project:
+        return [
+            Path.home() / "docs" / project / "progress.json",
+            Path("progress.json"),
+        ]
+    return [Path("progress.json")]
 
 
 def find_progress() -> Optional[Path]:
