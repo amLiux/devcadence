@@ -63,6 +63,17 @@ DevCadence does not require a specific client. When the runtime exposes model or
 
 Agents MUST omit `metadata` fields when data is unavailable. Never fabricate token counts.
 
+## Security Context
+
+If the project has a `SECURITY.md` file at its root, agents MUST read it on every session start and apply its rules before generating code, running commands, or modifying configuration. `SECURITY.md` should contain:
+
+- OWASP considerations mapped to agent workflows
+- Secrets and key handling rules
+- A modifiable security blueprint for project-specific requirements
+- An agent session checklist
+
+When in conflict, `SECURITY.md` overrides general DevCadence guidance for that project.
+
 ## Mode Chain
 
 Default chain:

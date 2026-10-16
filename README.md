@@ -99,6 +99,10 @@ sibling commands that load domain SMEs:
 
 All commands share the same project config.
 
+## Security
+
+See [`SECURITY.md`](SECURITY.md) for the agent-readable security context, OWASP checklist, secrets handling rules, and a modifiable security blueprint.
+
 ## For contributors
 
 ```bash
