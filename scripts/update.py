@@ -139,6 +139,28 @@ def _backup_config(cmd_path: Path) -> str:
     return "\n".join(out)
 
 
+def _strip_config_block(content: bytes) -> bytes:
+    """Remove the # Project Config block from command file content."""
+    try:
+        text = content.decode("utf-8")
+    except UnicodeDecodeError:
+        return content
+    lines = text.splitlines()
+    out = []
+    for line in lines:
+        if line.strip() == "# Project Config":
+            break
+        out.append(line)
+    # Preserve trailing newline style
+    if text.endswith("\n") and out and out[-1] != "":
+        out.append("")
+    return "\n".join(out).encode("utf-8")
+
+
+def _is_command_file(local: Path) -> bool:
+    return local.name == "devcadence.md" and local.parent.name == "commands"
+
+
 def check_updates() -> dict:
     """Return status of managed files without modifying anything."""
     results = {}
@@ -155,7 +177,13 @@ def check_updates() -> dict:
             results[display] = {"status": "missing", "reason": "local file not found"}
             continue
 
-        if _hash(local_content) == _hash(remote):
+        compare_remote = remote
+        compare_local = local_content
+        if _is_command_file(local):
+            compare_remote = _strip_config_block(remote)
+            compare_local = _strip_config_block(local_content)
+
+        if _hash(compare_local) == _hash(compare_remote):
             results[display] = {"status": "up-to-date"}
         else:
             results[display] = {"status": "update-available"}
