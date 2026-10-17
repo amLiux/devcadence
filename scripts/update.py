@@ -13,7 +13,7 @@ import subprocess
 import sys
 import urllib.request
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 REPO_RAW = "https://raw.githubusercontent.com/amLiux/devcadence/main"
 
