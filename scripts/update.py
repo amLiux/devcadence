@@ -150,10 +150,11 @@ def _strip_config_block(content: bytes) -> bytes:
     for line in lines:
         if line.strip() == "# Project Config":
             break
-        out.append(line)
-    # Preserve trailing newline style
-    if text.endswith("\n") and out and out[-1] != "":
-        out.append("")
+        out.append(line.rstrip())
+    # Normalize trailing whitespace/blank lines so minor formatting differences
+    # between local and upstream do not trigger false positives.
+    while out and out[-1] == "":
+        out.pop()
     return "\n".join(out).encode("utf-8")
 
 
