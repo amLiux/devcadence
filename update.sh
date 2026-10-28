@@ -96,7 +96,7 @@ rm -f "$TEMP_CMD" "$TEMP_CMD.tmp" "$TEMP_CMD.bak"
 # [4] Update scripts/
 log "Updating scripts..."
 mkdir -p scripts
-for script in tickets.py logs.py progress.py storage.py update.py migrate.py; do
+for script in tickets.py logs.py progress.py storage.py update.py migrate.py coder.py coder_prompt.md; do
   TEMP_SCRIPT=$(mktemp)
   if curl -sf "$REPO_RAW/scripts/$script" -o "$TEMP_SCRIPT" 2>/dev/null; then
     if [ -f "scripts/$script" ] && diff -q "$TEMP_SCRIPT" "scripts/$script" >/dev/null 2>&1; then

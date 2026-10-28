@@ -101,6 +101,8 @@ These are the canonical files and directories DevCadence uses. Agents should rea
 | `scripts/storage.py` | SQLite index builder/query |
 | `scripts/update.py` | DevCadence update checker/applier |
 | `scripts/migrate.py` | Migration assistant (optional deps) |
+| `scripts/coder.py` | Local LLM code generator from spec |
+| `.devcadence/prompts/coder.md` | Optional per-project coder prompt override |
 | `<log-dir>/progress.json` | Project state (tickets, humanLog, observations) |
 | `<log-dir>/logs/` | Session logs |
 | `<log-dir>/.devcadence.db` | SQLite index (auto-built) |
@@ -250,6 +252,63 @@ huddle --> huddle     (more ideas, keep riffing)
 - Add observations with pattern, severity, confidence
 - Edit existing tickets (status, AC, notes)
 - Tag itself `global: true` so ideas surface automatically
+
+## Local Coder Backend (Optional)
+
+Pair mode can delegate code generation to a fast local model (e.g. `qwen2.5-coder:7b` via Ollama) while the cloud agent remains the director.
+
+### Configuration
+
+Add to `progress.json`:
+
+```json
+"coder": {
+  "backend": "local",
+  "endpoint": "http://localhost:11434",
+  "model": "qwen2.5-coder:7b",
+  "auto_apply": false,
+  "max_retries": 2
+}
+```
+
+- `backend`: `"agent"` (default) keeps the current behavior; `"local"` routes codegen through `scripts/coder.py`.
+- `endpoint` / `model`: target Ollama instance.
+- `auto_apply`: when `false`, the cloud agent reviews the local output before applying.
+- `max_retries`: how many times to re-prompt the local model after a verification failure.
+
+### Spec Schema
+
+The cloud agent writes a spec file per ticket (e.g. `.devcadence/specs/DC-30.json`):
+
+```json
+{
+  "ticketId": "DC-30",
+  "task": "...",
+  "acceptance": ["..."],
+  "files": ["path/to/file.py"],
+  "context": {"path/to/file.py": "current content"},
+  "constraints": ["Use only stdlib", "No shell=True"],
+  "output_format": "unified-diff",
+  "coder": {
+    "endpoint": "http://localhost:11434",
+    "model": "qwen2.5-coder:7b",
+    "temperature": 0.1
+  }
+}
+```
+
+### Flow
+
+1. Cloud agent writes/updates the spec.
+2. If `coder.backend == "local"` and the endpoint is healthy, call `scripts/coder.py --spec <file>`.
+3. Cloud agent reviews the returned diff/full files against acceptance criteria.
+4. Runs tests/lint.
+5. Applies if clean (or if `auto_apply` is true); otherwise feeds the error back into the spec and retries.
+6. If the local backend is unreachable or fails verification `max_retries` times, fall back to agent-driven coding.
+
+### Prompt Template
+
+The default prompt ships with the skill inside `scripts/coder.py` and `scripts/coder_prompt.md`. A project can override it by creating `.devcadence/prompts/coder.md`. Post-PR feedback should be captured as new constraints or template edits so the local coder improves across sessions.
 
 ## Agent Roles
 

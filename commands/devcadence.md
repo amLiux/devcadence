@@ -40,6 +40,26 @@ When the user invokes `/devcadence <mode>`, run that mode immediately. Do not as
 5. For exact file paths, read the File Manifest in the `devcadence` skill
 6. Never push to main unless `git.control` is `total`
 
+# Local Coder Backend (Optional)
+
+Pair mode can route code generation to a local model (e.g. Ollama + `qwen2.5-coder:7b`) while the cloud agent stays in control of architecture, logs, and verification.
+
+Add to `progress.json`:
+
+```json
+"coder": {
+  "backend": "local",
+  "endpoint": "http://localhost:11434",
+  "model": "qwen2.5-coder:7b",
+  "auto_apply": false,
+  "max_retries": 2
+}
+```
+
+- `backend`: `"agent"` (default) keeps current behavior; `"local"` calls `scripts/coder.py`.
+- The cloud agent writes a spec per ticket (`.devcadence/specs/<ticket>.json`), reviews local output, runs tests, and falls back to agent-driven coding on failure.
+- Default prompt template ships with the skill; override per project at `.devcadence/prompts/coder.md`.
+
 # Project Config
 
 ```markdown
