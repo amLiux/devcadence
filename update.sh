@@ -9,6 +9,9 @@ REPO_RAW="https://raw.githubusercontent.com/amLiux/devcadence/main"
 STEP=0
 CHANGES=0
 
+# Keep in sync with install.sh MANAGED_SCRIPTS (enforced by tests/test_install.py).
+MANAGED_SCRIPTS="tickets.py logs.py progress.py storage.py update.py migrate.py coder.py coder_prompt.md"
+
 log() {
   STEP=$((STEP + 1))
   echo "[$STEP] $1"
@@ -96,7 +99,7 @@ rm -f "$TEMP_CMD" "$TEMP_CMD.tmp" "$TEMP_CMD.bak"
 # [4] Update scripts/
 log "Updating scripts..."
 mkdir -p scripts
-for script in tickets.py logs.py progress.py storage.py update.py migrate.py coder.py coder_prompt.md; do
+for script in $MANAGED_SCRIPTS; do
   TEMP_SCRIPT=$(mktemp)
   if curl -sf "$REPO_RAW/scripts/$script" -o "$TEMP_SCRIPT" 2>/dev/null; then
     if [ -f "scripts/$script" ] && diff -q "$TEMP_SCRIPT" "scripts/$script" >/dev/null 2>&1; then
@@ -111,7 +114,19 @@ for script in tickets.py logs.py progress.py storage.py update.py migrate.py cod
   rm -f "$TEMP_SCRIPT"
 done
 
-# [5] Summary
+# [5] Ensure SECURITY.md exists (never overwrite project's blueprint)
+log "Checking SECURITY.md..."
+if [ -f "SECURITY.md" ]; then
+  ok "Present (not overwritten)"
+else
+  if curl -sf "$REPO_RAW/SECURITY.md" -o "SECURITY.md"; then
+    changed "SECURITY.md (fill in the blueprint in section 4)"
+  else
+    indent "SECURITY.md not found upstream (skip)"
+  fi
+fi
+
+# [6] Summary
 echo ""
 if [ "$CHANGES" -eq 0 ]; then
   echo "Everything up to date. No changes."
@@ -120,7 +135,7 @@ else
 fi
 echo ""
 
-# [6] Version hint
+# [7] Version hint
 if command -v opencode &>/dev/null; then
   echo "Next step:"
   echo "  /devcadence standup"

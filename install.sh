@@ -8,6 +8,9 @@ set -euo pipefail
 REPO_RAW="https://raw.githubusercontent.com/amLiux/devcadence/main"
 STEP=0
 
+# Keep in sync with update.sh MANAGED_SCRIPTS (enforced by tests/test_install.py).
+MANAGED_SCRIPTS="tickets.py logs.py progress.py storage.py update.py migrate.py coder.py coder_prompt.md"
+
 log() {
   STEP=$((STEP + 1))
   echo "[$STEP] $1"
@@ -19,6 +22,10 @@ indent() {
 
 ok() {
   indent "✓ $1"
+}
+
+warn() {
+  indent "! $1"
 }
 
 fail() {
@@ -87,7 +94,38 @@ else
   fi
 fi
 
-# [7] Verify installation
+# [7] Fetch scripts (the skill's File Manifest expects scripts/ at project root)
+log "Installing scripts/..."
+mkdir -p scripts
+for script in $MANAGED_SCRIPTS; do
+  TEMP_SCRIPT=$(mktemp)
+  if curl -sf "$REPO_RAW/scripts/$script" -o "$TEMP_SCRIPT"; then
+    if [ -f "scripts/$script" ] && diff -q "$TEMP_SCRIPT" "scripts/$script" >/dev/null 2>&1; then
+      ok "scripts/$script up to date"
+    else
+      cp "$TEMP_SCRIPT" "scripts/$script"
+      ok "scripts/$script"
+    fi
+  else
+    rm -f "$TEMP_SCRIPT"
+    fail "Failed to download scripts/$script — check your internet connection"
+  fi
+  rm -f "$TEMP_SCRIPT"
+done
+
+# [8] Security context (never overwrite a project's own blueprint)
+log "Installing SECURITY.md..."
+if [ -f "SECURITY.md" ]; then
+  ok "Skipped — already exists (project security context preserved)"
+else
+  if curl -sf "$REPO_RAW/SECURITY.md" -o "SECURITY.md"; then
+    ok "Downloaded — fill in the blueprint in section 4"
+  else
+    warn "Could not download SECURITY.md; author one before handling secrets or auth code"
+  fi
+fi
+
+# [9] Verify installation
 log "Verifying installation..."
 MISSING=0
 if [ ! -f ".opencode/skills/devcadence/SKILL.md" ]; then
@@ -98,20 +136,32 @@ if [ ! -f ".opencode/commands/devcadence.md" ]; then
   indent "✗ devcadence.md missing"
   MISSING=1
 fi
+for script in $MANAGED_SCRIPTS; do
+  if [ ! -f "scripts/$script" ]; then
+    indent "✗ scripts/$script missing"
+    MISSING=1
+  fi
+done
 if [ "$MISSING" -eq 0 ]; then
   ok "All files in place"
+else
+  fail "Installation incomplete — re-run install.sh"
 fi
 
-# [8] Summary
+# [10] Summary
 echo ""
 echo "Installation complete."
 echo ""
 echo "Files installed:"
 echo "  .opencode/skills/devcadence/SKILL.md"
 echo "  .opencode/commands/devcadence.md"
+for script in $MANAGED_SCRIPTS; do
+  echo "  scripts/$script"
+done
+echo "  SECURITY.md"
 echo ""
 
-# [9] Next steps
+# [11] Next steps
 if command -v opencode &>/dev/null; then
   echo "Next step:"
   echo "  opencode"
