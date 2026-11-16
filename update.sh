@@ -10,7 +10,7 @@ STEP=0
 CHANGES=0
 
 # Keep in sync with install.sh MANAGED_SCRIPTS (enforced by tests/test_install.py).
-MANAGED_SCRIPTS="tickets.py logs.py progress.py storage.py update.py migrate.py coder.py coder_prompt.md"
+MANAGED_SCRIPTS="tickets.py logs.py progress.py storage.py update.py migrate.py coder.py coder_prompt.md peer.py"
 
 log() {
   STEP=$((STEP + 1))

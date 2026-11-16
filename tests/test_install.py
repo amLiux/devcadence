@@ -21,6 +21,7 @@ EXPECTED_SCRIPTS = [
     "migrate.py",
     "coder.py",
     "coder_prompt.md",
+    "peer.py",
 ]
 
 
@@ -37,6 +38,20 @@ def test_install_and_update_manage_same_scripts():
 
 def test_managed_scripts_cover_skill_file_manifest():
     assert _managed_scripts("install.sh") == EXPECTED_SCRIPTS
+
+
+def test_update_py_tracks_the_same_scripts():
+    import sys
+
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import update
+
+    tracked = [
+        Path(remote).name
+        for remote, _ in update.REPO_MANAGED_FILES
+        if remote.startswith("scripts/")
+    ]
+    assert tracked == EXPECTED_SCRIPTS
 
 
 def test_installer_downloads_scripts():
