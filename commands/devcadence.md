@@ -33,7 +33,7 @@ When the user invokes `/devcadence <mode>`, run that mode immediately. Do not as
 
 ## Agent rules
 
-1. Work from project root: `/Users/amliux/Dev/devdock`
+1. Work from the current project's root: the git top-level directory, or the current working directory when it is not a repo. Never assume a machine-specific path.
 2. Scripts live in `scripts/` — always run as `python3 scripts/<file>.py ...`
 3. Read `SECURITY.md` from project root if it exists
 4. Auto-update `progress.json` and write session logs — never ask the user
@@ -62,10 +62,15 @@ Add to `progress.json`:
 
 # Project Config
 
+Placeholders only. `/devcadence setup` rewrites this block with the real values;
+until then the agent derives `<project>` from the repo directory name and uses
+`~/docs/<project>/`.
+
 ```markdown
-# - Log dir: ~/docs/devdock/
-# - Progress: ~/docs/devdock/progress.json
-# - Ticket format: dd-01
+# - Log dir: ~/docs/<project>/
+# - Progress: ~/docs/<project>/progress.json
+# - SQLite index: ~/docs/<project>/.devcadence.db
+# - Ticket format: <PREFIX>-01
 # - Git control: manual
 # - User role: dev-lead
 # - Caveman level: full

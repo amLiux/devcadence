@@ -62,6 +62,18 @@ curl -sL https://raw.githubusercontent.com/amLiux/devcadence/main/install.sh | b
 
 Then open opencode and run `/devcadence setup`.
 
+The installer writes:
+
+```
+.opencode/skills/devcadence/SKILL.md   # protocol
+.opencode/commands/devcadence.md       # command + project config
+scripts/                               # tickets.py, logs.py, progress.py, ...
+SECURITY.md                            # template, only if you don't have one
+```
+
+Nothing else is required: the scripts behind `/devcadence` are query utilities
+(`python3 scripts/progress.py` works immediately after install).
+
 ## For project leads
 
 ```bash
@@ -124,10 +136,12 @@ ls .opencode/
 devcadence/
 ├── skills/devcadence/SKILL.md   # Protocol definition (single source of truth)
 ├── commands/devcadence.md       # Base invocation command
-├── tests/                       # Schema validation
+├── scripts/                     # Query utilities (tickets, logs, progress, storage, ...)
+├── tests/                       # Schema + installer validation
 ├── examples/                    # Example usage for different projects
 ├── install.sh                   # One-liner for any agent
 ├── update.sh                    # Update existing DevCadence installation
+├── SECURITY.md                  # Agent-readable security context (template)
 ├── LICENSE                      # MIT
 └── README.md
 ```
@@ -144,7 +158,8 @@ curl -sL https://raw.githubusercontent.com/amLiux/devcadence/main/update.sh | ba
 `update.sh` will:
 - Pull the latest `SKILL.md` and command file
 - Preserve your `# Project Config` block
-- Pull any new scripts or examples
+- Pull the managed scripts in `scripts/` (tickets, logs, progress, storage, update, migrate, coder)
+- Install `SECURITY.md` only if your project does not have one yet
 - Show what changed
 
 Your existing `progress.json`, `humanLog`, and `logs/` are untouched.
