@@ -53,6 +53,12 @@ hits DB schemas and data flow.
 **Instant repo SME** — `/devcadence new-sme` generates a repo expert memo in
 ~1000 tokens. Quick mode uses rg+tree, full mode adds repomix + graphify.
 
+**Peer sessions** — `/devcadence peer add backend` registers another opencode
+project under an alias, with a local SME and its `progress.json` as read-only
+context. Then *"preguntale al backend cuánto estima el endpoint y que lo deje en
+cola"* sends a scoped request through its session. Read-only on the peer, 4-turn
+budget, no auto-replies.
+
 ## Quick start
 
 ```bash

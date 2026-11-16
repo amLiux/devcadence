@@ -27,6 +27,7 @@ When the user invokes `/devcadence <mode>`, run that mode immediately. Do not as
 | `note` | `/devcadence note "<message>"` |
 | `extensions` | `/devcadence extensions` |
 | `new-extension` | `/devcadence new-extension` |
+| `peer` | `/devcadence peer add|send|read|list` |
 | `migrate` | `uv run python scripts/migrate.py ...` |
 | `storage` | `python scripts/storage.py` |
 | `update` | `python scripts/update.py --check` / `--apply` |

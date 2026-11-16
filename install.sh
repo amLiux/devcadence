@@ -9,7 +9,7 @@ REPO_RAW="https://raw.githubusercontent.com/amLiux/devcadence/main"
 STEP=0
 
 # Keep in sync with update.sh MANAGED_SCRIPTS (enforced by tests/test_install.py).
-MANAGED_SCRIPTS="tickets.py logs.py progress.py storage.py update.py migrate.py coder.py coder_prompt.md"
+MANAGED_SCRIPTS="tickets.py logs.py progress.py storage.py update.py migrate.py coder.py coder_prompt.md peer.py"
 
 log() {
   STEP=$((STEP + 1))

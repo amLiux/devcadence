@@ -28,6 +28,9 @@ REPO_MANAGED_FILES = [
     ("scripts/storage.py", "scripts/storage.py"),
     ("scripts/update.py", "scripts/update.py"),
     ("scripts/migrate.py", "scripts/migrate.py"),
+    ("scripts/coder.py", "scripts/coder.py"),
+    ("scripts/coder_prompt.md", "scripts/coder_prompt.md"),
+    ("scripts/peer.py", "scripts/peer.py"),
 ]
 
 
