@@ -1,7 +1,16 @@
 import re
+import shutil
+import subprocess
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).parent.parent
+
+pytestmark = pytest.mark.skipif(
+    shutil.which("bash") is None or shutil.which("curl") is None,
+    reason="installer/updater tests need bash and curl",
+)
 
 EXPECTED_SCRIPTS = [
     "tickets.py",
@@ -61,3 +70,57 @@ def test_command_template_has_no_machine_specific_paths():
 def test_command_template_uses_generic_project_root():
     text = (ROOT / "commands" / "devcadence.md").read_text()
     assert "git top-level directory" in text
+
+
+def _seed_install(tmp_path, config_lines):
+    (tmp_path / ".opencode" / "skills" / "devcadence").mkdir(parents=True)
+    (tmp_path / ".opencode" / "skills" / "devcadence" / "SKILL.md").write_text("stub\n")
+    command = tmp_path / ".opencode" / "commands" / "devcadence.md"
+    command.parent.mkdir(parents=True)
+    command.write_text(
+        'skill({ name: "devcadence" })\n\n# Project Config\n\n```markdown\n'
+        + "\n".join(config_lines)
+        + "\n```\n"
+    )
+    return command
+
+
+def _run_update(tmp_path):
+    script = tmp_path / "run-update.sh"
+    script.write_text(
+        (ROOT / "update.sh")
+        .read_text()
+        .replace("https://raw.githubusercontent.com/amLiux/devcadence/main", ROOT.as_uri())
+    )
+    return subprocess.run(
+        ["bash", str(script)], cwd=tmp_path, capture_output=True, text=True
+    )
+
+
+def test_update_warns_on_legacy_devdock_config(tmp_path):
+    command = _seed_install(
+        tmp_path,
+        ["# - Log dir: ~/docs/devdock/", "# - Progress: ~/docs/devdock/progress.json", "# - Ticket format: dd-01"],
+    )
+
+    result = _run_update(tmp_path)
+
+    assert result.returncode == 0, result.stderr
+    assert "Legacy config detected" in result.stdout
+    assert "~/docs/devdock/" in result.stdout
+    assert "/devcadence setup" in result.stdout
+    # preserved, never auto-rewritten
+    assert "docs/devdock" in command.read_text()
+
+
+def test_update_does_not_warn_on_project_config(tmp_path):
+    command = _seed_install(
+        tmp_path,
+        ["# - Log dir: ~/docs/my-project/", "# - Progress: ~/docs/my-project/progress.json", "# - Ticket format: MP-01"],
+    )
+
+    result = _run_update(tmp_path)
+
+    assert result.returncode == 0, result.stderr
+    assert "Legacy config detected" not in result.stdout
+    assert "~/docs/my-project/" in command.read_text()
