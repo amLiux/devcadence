@@ -25,6 +25,10 @@ ok() {
   indent "✓ $1"
 }
 
+warn() {
+  indent "! $1"
+}
+
 changed() {
   indent "→ $1"
   CHANGES=$((CHANGES + 1))
@@ -95,6 +99,12 @@ else
   fail "Failed to download devcadence.md"
 fi
 rm -f "$TEMP_CMD" "$TEMP_CMD.tmp" "$TEMP_CMD.bak"
+
+# [3b] Legacy config guard (pre-DC-41 installs inherited the maintainer's paths)
+if [ -n "${CONFIG_BLOCK:-}" ] && echo "$CONFIG_BLOCK" | grep -qE 'docs/devdock|dd-01'; then
+  warn "Legacy config detected: Project Config still points at ~/docs/devdock/ (dd-01)."
+  warn "It was preserved, not rewritten. Run /devcadence setup or edit the block to this project's log dir."
+fi
 
 # [4] Update scripts/
 log "Updating scripts..."

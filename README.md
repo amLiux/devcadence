@@ -164,6 +164,14 @@ curl -sL https://raw.githubusercontent.com/amLiux/devcadence/main/update.sh | ba
 
 Your existing `progress.json`, `humanLog`, and `logs/` are untouched.
 
+### Updating an install from before DC-41
+
+The updater preserves your `# Project Config` block. If it still points at
+`~/docs/devdock/` or uses the `dd-01` prefix (state inherited from the old
+shipped template), `update.sh` prints a legacy-config warning and leaves the
+block alone — it never rewrites a real project config. Run `/devcadence setup`
+or edit the block to point at this project's log dir.
+
 ### Daily update check
 
 To make sure you don't miss improvements, run a quick check at the start of your day:
